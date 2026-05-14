@@ -1,0 +1,368 @@
+{
+  "$comment": "Architecture map for the alix-prototype project. nodes = the moving parts (pages, prototypes, APIs, stores, externals). flows = step-by-step paths through them. Update when responsibilities move, a new endpoint lands, or a data path shifts. See .claude/skills/design-prototype/SKILL.md (flows.json section). Viewer: .designs/flows.html.",
+  "project": "alix-prototype",
+  "updatedAt": "2026-05-14",
+  "legend": {
+    "nodeType": ["page", "prototype", "api", "store", "external", "component"],
+    "nodeStatus": ["implemented", "designed", "proposed"],
+    "flowStatus": ["implemented", "proposed"]
+  },
+
+  "nodes": [
+    {
+      "id": "page-home",
+      "type": "page",
+      "label": "Home (hello world)",
+      "path": "app/page.tsx",
+      "status": "implemented",
+      "details": "Server component. Fetches /api/hello with cache: no-store and renders the Postgres message + timestamp."
+    },
+    {
+      "id": "api-hello",
+      "type": "api",
+      "label": "GET /api/hello",
+      "path": "app/api/hello/route.ts",
+      "status": "implemented",
+      "details": "Runs SELECT 'hello world' AS message, NOW() AS now through the postgres (porsager) client."
+    },
+    {
+      "id": "ext-postgres",
+      "type": "external",
+      "label": "Postgres 17 (docker)",
+      "path": "docker-compose.yml",
+      "status": "implemented",
+      "details": "alix/alix on localhost:5433 (5432 was taken by another project's hackathon-db-1 container)."
+    },
+    {
+      "id": "ext-pg-client",
+      "type": "external",
+      "label": "postgres (porsager) npm",
+      "path": "node_modules/postgres",
+      "status": "implemented",
+      "details": "Tagged-template driver. Initialised once per API route module from process.env.DATABASE_URL."
+    },
+    {
+      "id": "ext-alix-ui",
+      "type": "external",
+      "label": "@alixpartners/ui-components",
+      "path": "node_modules/@alixpartners/ui-components",
+      "status": "implemented",
+      "details": "Private npm registry. ESM-only, CSS side effects per component. Peers: react@^18.3.1, react-dom@^18.3.1, radix-ui, notistack."
+    },
+    {
+      "id": "vendor-bundle",
+      "type": "external",
+      "label": ".designs/vendor/alix-ui.js + .css",
+      "path": ".designs/vendor/",
+      "status": "implemented",
+      "details": "esbuild output bundling React, ReactDOM, and the lib (with peers) into a single ESM file + a single CSS file. Rebuilt only when the lib upgrades."
+    },
+
+    {
+      "id": "proto-finance-dashboard",
+      "type": "prototype",
+      "label": "Finance dashboard prototype",
+      "path": ".designs/finance-dashboard/index.html",
+      "status": "designed",
+      "details": "Static HTML mounted by Babel-standalone + vendor bundle. End-of-day P&L snapshot, top movers, positions table, sidebar with alerts/settings/watchlist/notes."
+    },
+    {
+      "id": "proto-settings",
+      "type": "prototype",
+      "label": "Settings prototype",
+      "path": ".designs/settings/index.html",
+      "status": "designed",
+      "details": "Eight sections (Profile, Notifications, Display, Trading defaults, Data sources, API keys, Security, Danger zone) behind a sticky side nav + sticky save bar."
+    },
+
+    {
+      "id": "page-dashboard",
+      "type": "page",
+      "label": "Dashboard (EOD snapshot)",
+      "path": "app/dashboard/page.tsx",
+      "status": "proposed",
+      "blockedBy": ["api-eod", "api-positions", "api-reports-eod", "ext-auth"],
+      "details": "Real implementation of the finance-dashboard prototype. Server component shell + client component for filters and tabs."
+    },
+    {
+      "id": "page-settings",
+      "type": "page",
+      "label": "Settings",
+      "path": "app/settings/page.tsx",
+      "status": "proposed",
+      "blockedBy": ["api-me-notifications", "api-keys", "api-data-sources", "api-sessions", "ext-auth"]
+    },
+
+    {
+      "id": "api-eod",
+      "type": "api",
+      "label": "GET /api/eod",
+      "path": "app/api/eod/route.ts",
+      "status": "proposed",
+      "details": "Returns { pnl, winRate, tradeCount, netExposure, asOf } for a given date + account + asset-class filter."
+    },
+    {
+      "id": "api-positions",
+      "type": "api",
+      "label": "GET /api/positions",
+      "path": "app/api/positions/route.ts",
+      "status": "proposed",
+      "details": "Lists open positions with mark-to-market values for the dashboard table."
+    },
+    {
+      "id": "api-trades",
+      "type": "api",
+      "label": "GET /api/trades",
+      "path": "app/api/trades/route.ts",
+      "status": "proposed",
+      "details": "Trade blotter for the Trades tab. Powers the loading-state pattern in the prototype."
+    },
+    {
+      "id": "api-reports-eod",
+      "type": "api",
+      "label": "POST /api/reports/eod",
+      "path": "app/api/reports/eod/route.ts",
+      "status": "proposed",
+      "details": "Enqueues an emailed EOD summary to the desk distribution list. Returns 202."
+    },
+    {
+      "id": "api-data-sources",
+      "type": "api",
+      "label": "CRUD /api/data-sources",
+      "path": "app/api/data-sources/route.ts",
+      "status": "proposed",
+      "details": "Lists provider connections (Bloomberg, FactSet, Refinitiv, Yahoo, Internal). Status (live/stale/error) is derived from the latest health probe."
+    },
+    {
+      "id": "api-me-notifications",
+      "type": "api",
+      "label": "PATCH /api/me/notifications",
+      "path": "app/api/me/notifications/route.ts",
+      "status": "proposed",
+      "details": "Updates the current user's notification preferences (channels, event types, severity threshold, quiet hours)."
+    },
+    {
+      "id": "api-me-prefs",
+      "type": "api",
+      "label": "PATCH /api/me/prefs",
+      "path": "app/api/me/prefs/route.ts",
+      "status": "proposed",
+      "details": "Display + trading defaults (theme, density, default order type, etc.)."
+    },
+    {
+      "id": "api-keys",
+      "type": "api",
+      "label": "CRUD /api/keys",
+      "path": "app/api/keys/route.ts",
+      "status": "proposed",
+      "details": "Programmatic access. POST returns the plain-text secret ONCE; only the hash is persisted. DELETE sets revoked_at."
+    },
+    {
+      "id": "api-sessions",
+      "type": "api",
+      "label": "GET/DELETE /api/sessions",
+      "path": "app/api/sessions/route.ts",
+      "status": "proposed",
+      "details": "Active session list + remote revoke. Backed by the IdP."
+    },
+
+    {
+      "id": "store-toast",
+      "type": "store",
+      "label": "ToastProvider (notistack)",
+      "path": "app/layout.tsx (proposed)",
+      "status": "proposed",
+      "details": "Today each prototype wraps its own ToastProvider. Real impl should wrap the entire app tree exactly once so useToast() works from any client component."
+    },
+    {
+      "id": "db-positions",
+      "type": "store",
+      "label": "positions table (PG)",
+      "status": "proposed",
+      "details": "Snapshot rows keyed by (account, symbol, as_of). Mark prices joined at query time."
+    },
+    {
+      "id": "db-trades",
+      "type": "store",
+      "label": "trades table (PG)",
+      "status": "proposed",
+      "details": "Per-fill rows. Aggregated into KPIs and the Trades tab blotter."
+    },
+    {
+      "id": "db-user-prefs",
+      "type": "store",
+      "label": "user_ui_prefs / user_notification_prefs / user_trading_defaults",
+      "status": "proposed",
+      "details": "Per-user preference rows. Read on app boot (cookie/session) so theme applies on first paint."
+    },
+    {
+      "id": "db-api-keys",
+      "type": "store",
+      "label": "api_keys table (PG)",
+      "status": "proposed",
+      "details": "Stores hashed secret, prefix, scope, created_at, last_used_at, revoked_at. Plain text NEVER persisted."
+    },
+    {
+      "id": "db-data-sources",
+      "type": "store",
+      "label": "data_sources table (PG)",
+      "status": "proposed",
+      "details": "Connection config per provider. Status is derived at read time, not stored."
+    },
+
+    {
+      "id": "ext-auth",
+      "type": "external",
+      "label": "AlixPartners SSO (IdP)",
+      "status": "proposed",
+      "details": "Not yet wired. Required before dashboard and settings ship. Email comes from the IdP claim and stays disabled in the Profile section."
+    },
+    {
+      "id": "ext-email",
+      "type": "external",
+      "label": "Email service",
+      "status": "proposed",
+      "details": "Delivers EOD summary + any future notification emails. Specific provider TBD."
+    },
+    {
+      "id": "ext-feeds",
+      "type": "external",
+      "label": "Market data feeds",
+      "status": "proposed",
+      "details": "Bloomberg B-PIPE, FactSet AI-Ready, Refinitiv, Yahoo (fallback). Surfaced through api-data-sources."
+    }
+  ],
+
+  "flows": [
+    {
+      "id": "flow-hello",
+      "label": "Hello-world smoke test",
+      "status": "implemented",
+      "trigger": "GET /",
+      "steps": [
+        { "from": "page-home", "to": "api-hello", "via": "fetch (no-store)", "note": "Server component issues the fetch during SSR." },
+        { "from": "api-hello", "to": "ext-pg-client", "via": "tagged template SQL", "note": "SELECT 'hello world' AS message, NOW() AS now" },
+        { "from": "ext-pg-client", "to": "ext-postgres", "via": "postgres protocol :5433" },
+        { "from": "api-hello", "to": "page-home", "via": "Response.json", "note": "{ message, now }" }
+      ]
+    },
+    {
+      "id": "flow-eod-snapshot",
+      "label": "Dashboard initial load (EOD KPIs + positions)",
+      "status": "proposed",
+      "trigger": "GET /dashboard after market close",
+      "steps": [
+        { "from": "page-dashboard", "to": "api-eod", "via": "fetch", "note": "scoped by date + account + asset-class filters" },
+        { "from": "api-eod", "to": "db-trades", "via": "SQL", "note": "aggregate fills for the date (count, win-rate)" },
+        { "from": "api-eod", "to": "db-positions", "via": "SQL", "note": "sum mark-to-market exposure" },
+        { "from": "page-dashboard", "to": "api-positions", "via": "fetch", "note": "current book for the Positions tab" },
+        { "from": "api-positions", "to": "db-positions", "via": "SQL" }
+      ]
+    },
+    {
+      "id": "flow-filter-refetch",
+      "label": "Dashboard filter change refetches KPIs + positions",
+      "status": "proposed",
+      "trigger": "User changes Date / Account / Asset class / Closed-only",
+      "steps": [
+        { "from": "page-dashboard", "to": "api-eod", "via": "fetch", "note": "filters serialized to query string; debounce 200 ms" },
+        { "from": "page-dashboard", "to": "api-positions", "via": "fetch" }
+      ]
+    },
+    {
+      "id": "flow-send-daily-report",
+      "label": "Send daily EOD report",
+      "status": "proposed",
+      "trigger": "Dashboard sidebar → 'Send daily report' → Dialog confirm",
+      "steps": [
+        { "from": "page-dashboard", "to": "api-reports-eod", "via": "POST", "note": "current filters in body so the email matches what the user sees" },
+        { "from": "api-reports-eod", "to": "db-trades", "via": "SQL" },
+        { "from": "api-reports-eod", "to": "ext-email", "via": "queue", "note": "enqueue; do not block the request on delivery" },
+        { "from": "api-reports-eod", "to": "page-dashboard", "via": "Response.json", "note": "202 Accepted" },
+        { "from": "page-dashboard", "to": "store-toast", "via": "useToast().success", "note": "'Daily report queued for delivery.'" }
+      ]
+    },
+    {
+      "id": "flow-save-prefs",
+      "label": "Save settings preferences (any section)",
+      "status": "proposed",
+      "trigger": "Settings → 'Save changes' (sticky save bar) while any section is dirty",
+      "steps": [
+        { "from": "page-settings", "to": "api-me-notifications", "via": "PATCH", "note": "Notifications section diff" },
+        { "from": "page-settings", "to": "api-me-prefs", "via": "PATCH", "note": "Display + Trading defaults diffs" },
+        { "from": "api-me-notifications", "to": "db-user-prefs", "via": "SQL" },
+        { "from": "api-me-prefs", "to": "db-user-prefs", "via": "SQL" },
+        { "from": "page-settings", "to": "store-toast", "via": "useToast().success", "note": "'Settings saved.' Dirty pill flips green." }
+      ]
+    },
+    {
+      "id": "flow-generate-key",
+      "label": "Generate API key (show-once)",
+      "status": "proposed",
+      "trigger": "Settings → API keys → 'Generate key' → confirmation Dialog",
+      "steps": [
+        { "from": "page-settings", "to": "api-keys", "via": "POST", "note": "name + scope in body" },
+        { "from": "api-keys", "to": "db-api-keys", "via": "SQL", "note": "INSERT hashed key + prefix; return plain secret in response" },
+        { "from": "api-keys", "to": "page-settings", "via": "Response.json", "note": "secret shown ONCE in the show-once Dialog; not retrievable afterward" },
+        { "from": "page-settings", "to": "store-toast", "via": "useToast().success", "note": "fires when the user clicks 'Copy' or closes the show-once dialog" }
+      ]
+    },
+    {
+      "id": "flow-revoke-key",
+      "label": "Revoke API key",
+      "status": "proposed",
+      "trigger": "Settings → API keys row → Revoke → danger Dialog confirm",
+      "steps": [
+        { "from": "page-settings", "to": "api-keys", "via": "DELETE", "note": "DELETE /api/keys/:id" },
+        { "from": "api-keys", "to": "db-api-keys", "via": "SQL", "note": "set revoked_at = now()" },
+        { "from": "api-keys", "to": "page-settings", "via": "Response.json", "note": "204" },
+        { "from": "page-settings", "to": "store-toast", "via": "useToast().success" }
+      ]
+    },
+    {
+      "id": "flow-remote-signout",
+      "label": "Sign out a remote session",
+      "status": "proposed",
+      "trigger": "Settings → Security → active session row → 'Sign out'",
+      "steps": [
+        { "from": "page-settings", "to": "api-sessions", "via": "DELETE", "note": "DELETE /api/sessions/:id" },
+        { "from": "api-sessions", "to": "ext-auth", "via": "IdP revoke endpoint" },
+        { "from": "api-sessions", "to": "page-settings", "via": "Response.json" },
+        { "from": "page-settings", "to": "store-toast", "via": "useToast().success" }
+      ]
+    },
+    {
+      "id": "flow-toggle-source",
+      "label": "Toggle a data source on/off",
+      "status": "proposed",
+      "trigger": "Settings → Data sources → per-card Toggle",
+      "steps": [
+        { "from": "page-settings", "to": "api-data-sources", "via": "PATCH", "note": "PATCH /api/data-sources/:id { enabled }" },
+        { "from": "api-data-sources", "to": "db-data-sources", "via": "SQL" },
+        { "from": "api-data-sources", "to": "ext-feeds", "via": "config push", "note": "if disabling, also revoke any active subscriptions to the feed" }
+      ]
+    },
+    {
+      "id": "flow-danger-action",
+      "label": "Danger zone destructive action",
+      "status": "proposed",
+      "trigger": "Settings → Danger zone → any action → danger Dialog (type-verb gate to be added in impl)",
+      "steps": [
+        { "from": "page-settings", "to": "api-me-prefs", "via": "DELETE / POST", "note": "varies per action: reset prefs, wipe watchlists, export+wipe local data, close account" },
+        { "from": "api-me-prefs", "to": "db-user-prefs", "via": "SQL" },
+        { "from": "page-settings", "to": "store-toast", "via": "useToast().warning", "note": "'<Action> executed.'" }
+      ]
+    },
+    {
+      "id": "flow-vendor-bundle",
+      "label": "Prototype vendor-bundle pipeline",
+      "status": "implemented",
+      "trigger": "sh .designs/vendor/bundle.sh (manual; after a library upgrade)",
+      "steps": [
+        { "from": "ext-alix-ui", "to": "vendor-bundle", "via": "esbuild", "note": ".designs/vendor/entry.tsx re-exports the lib + React/createRoot; CSS side effects → alix-ui.css" },
+        { "from": "vendor-bundle", "to": "proto-finance-dashboard", "via": "relative ESM import", "note": "../vendor/alix-ui.js" },
+        { "from": "vendor-bundle", "to": "proto-settings", "via": "relative ESM import" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Finance Dashboard — prototype</title>
+  <link rel="stylesheet" href="../vendor/alix-ui.css" />
+  <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f6f7f9; color: #0f172a; }
+    .page-wrap { max-width: 1400px; margin: 0 auto; padding: 0 24px 80px; }
+
+    /* ---------- header ---------- */
+    .title-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      align-items: end;
+      margin: 24px 0 16px;
+    }
+    .title-row h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.01em; }
+    .title-row .sub { margin: 4px 0 0; color: #64748b; font-size: 13px; }
+
+    .filter-row {
+      display: grid;
+      grid-template-columns: minmax(220px, 1.4fr) minmax(180px, 1fr) minmax(180px, 1fr) auto;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 20px;
+      padding: 12px 16px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+    }
+    .filter-row > * { min-width: 0; }
+    .filter-row .toggle-cell { padding-bottom: 6px; }
+
+    /* ---------- KPI ---------- */
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 0 0 24px; }
+    .kpi-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+    .kpi-label { display: flex; gap: 6px; align-items: center; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+    .kpi-value { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; line-height: 1.1; }
+    .kpi-delta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .kpi-delta > * { white-space: nowrap; }
+
+    /* ---------- panels ---------- */
+    .panel { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; }
+    .panel + .panel, .panel-stack > * + * { margin-top: 16px; }
+    .panel h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: .06em; color: #334155; }
+
+    .main-grid { display: grid; grid-template-columns: minmax(0, 2.1fr) minmax(280px, 1fr); gap: 24px; }
+    .sidebar { display: flex; flex-direction: column; gap: 16px; }
+    .stack-md > * + * { margin-top: 12px; }
+    .stack-sm > * + * { margin-top: 8px; }
+
+    /* ---------- movers ---------- */
+    .movers { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .movers .col-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .movers .row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #e2e8f0; }
+    .movers .row:last-child { border-bottom: none; }
+    .sym { font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+    .qty { color: #64748b; font-size: 12px; font-variant-numeric: tabular-nums; }
+
+    /* ---------- positions table ---------- */
+    table.book { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    table.book th, table.book td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: 13px; vertical-align: middle; }
+    table.book thead th { color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; background: #f8fafc; }
+    table.book td.num, table.book th.num { text-align: right; white-space: nowrap; }
+    table.book tbody tr:hover { background: #f8fafc; }
+    .pl-pos { color: #15803d; font-weight: 600; }
+    .pl-neg { color: #b91c1c; font-weight: 600; }
+    .pl-sub { display: block; font-size: 11px; color: #64748b; font-weight: 500; }
+    .col-sel    { width: 28px; }
+    .col-sym    { width: 70px; }
+    .col-sector { width: 110px; }
+    .col-action { width: 56px; }
+
+    /* ---------- empty / loading / error ---------- */
+    .empty-state { text-align: center; padding: 24px 16px; }
+    .empty-state h3 { margin: 12px 0 4px; font-size: 16px; }
+    .empty-state p { color: #64748b; margin: 0 0 16px; }
+    .empty-state .cta { display: inline-flex; justify-content: center; }
+    .loading-state { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 40px; color: #64748b; }
+
+    .design-badge { position: fixed; bottom: 12px; right: 12px; font: 600 11px/1 system-ui; padding: 6px 10px; background: #111; color: #fff; border-radius: 999px; z-index: 50; }
+
+    /* ---------- responsive ---------- */
+    @media (max-width: 1100px) {
+      .filter-row { grid-template-columns: 1fr 1fr; }
+      .filter-row .toggle-cell { grid-column: 1 / -1; }
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .main-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 900px) {
+      .title-row { grid-template-columns: 1fr auto; }
+      .title-row .export-cell { grid-column: 1 / -1; justify-self: start; }
+      .movers { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .page-wrap { padding: 0 12px 80px; }
+      .title-row { grid-template-columns: 1fr; }
+      .filter-row { grid-template-columns: 1fr; }
+      .filter-row .toggle-cell { grid-column: auto; }
+      .kpi-grid { grid-template-columns: 1fr; }
+      table.book thead { display: none; }
+      table.book, table.book tbody, table.book tr { display: block; width: 100%; }
+      table.book tr { border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; }
+      table.book td { border: none; padding: 4px 0; display: grid; grid-template-columns: 90px 1fr; align-items: center; font-size: 13px; }
+      table.book td::before {
+        content: attr(data-label);
+        color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600;
+      }
+      table.book td.num { text-align: left; }
+      table.book td:first-child::before { content: ""; }
+    }
+    @media (max-width: 400px) {
+      .title-row h1 { font-size: 22px; }
+      .kpi-value { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div class="design-badge">finance-dashboard — prototype</div>
+
+  <script type="text/babel" data-type="module" data-presets="react">
+    import {
+      React, createRoot,
+      NavBar, Banner, Button, Ghost, Tag, Tooltip, Toggle, Checkbox,
+      Input, Search, Datepicker, Dropdown, SplitButton, TabNavigation, Tab,
+      Spinner, Icon, Dialog, ToastProvider, useToast, Textarea, TagsFields,
+      Creatable, RadioGroup, Radio, Illustration
+    } from "../vendor/alix-ui.js";
+    const { useState } = React;
+
+    // ----------- mock data -----------
+    const KPIS = [
+      { id: "pnl",    label: "Daily P&L",       value: "+$248,420", delta: "+1.84%",     tone: "success", tip: "Realized + unrealized P&L, mark-to-market at 4:00 PM ET close." },
+      { id: "win",    label: "Win Rate",        value: "64.1%",     delta: "+3.2 pp",    tone: "success", tip: "Share of closed positions today with positive P&L." },
+      { id: "trades", label: "Trades Executed", value: "142",       delta: "−18 vs avg", tone: "warning", tip: "Total fills across all accounts. Below the 30-day average." },
+      { id: "expo",   label: "Net Exposure",    value: "$4.21M",    delta: "62% gross",  tone: "basic",   tip: "Net long − net short, mark-to-market position values." },
+    ];
+
+    const ACCOUNT_OPTIONS = [
+      { value: "all",   label: "All accounts" },
+      { value: "core",  label: "Core Long Equity" },
+      { value: "hedge", label: "Hedge Overlay" },
+      { value: "macro", label: "Macro Discretionary" },
+    ];
+    const ASSET_CLASS_OPTIONS = [
+      { value: "equity",  label: "Equities" },
+      { value: "options", label: "Options" },
+      { value: "futures", label: "Futures" },
+      { value: "fx",      label: "FX" },
+    ];
+    const EXPORT_ACTIONS = [
+      { value: "csv",  label: "Export as CSV",   action: () => {} },
+      { value: "xlsx", label: "Export as Excel", action: () => {} },
+      { value: "pdf",  label: "Export as PDF",   action: () => {} },
+    ];
+
+    const GAINERS = [
+      { sym: "NVDA", qty: "1,400 sh", pnl: "+$48,210", pct: "+3.87%" },
+      { sym: "TSLA", qty: "950 sh",   pnl: "+$22,890", pct: "+2.35%" },
+      { sym: "MSFT", qty: "600 sh",   pnl: "+$14,520", pct: "+1.10%" },
+      { sym: "AMZN", qty: "420 sh",   pnl: "+$9,180",  pct: "+0.90%" },
+    ];
+    const LOSERS = [
+      { sym: "META", qty: "−300 sh",   pnl: "−$8,640", pct: "−1.20%" },
+      { sym: "JPM",  qty: "−500 sh",   pnl: "−$5,210", pct: "−0.71%" },
+      { sym: "BAC",  qty: "−1,200 sh", pnl: "−$3,420", pct: "−0.45%" },
+      { sym: "SPY",  qty: "200 sh",    pnl: "−$1,950", pct: "−0.22%" },
+    ];
+
+    const POSITIONS = [
+      { sym: "NVDA", sector: "Tech",       qty:  1400, avg: 920.42, mark: 956.10, mv:  1338540, pnl:  49952, pct:  3.87 },
+      { sym: "TSLA", sector: "Consumer",   qty:   950, avg: 174.20, mark: 178.30, mv:   169385, pnl:   3895, pct:  2.35 },
+      { sym: "MSFT", sector: "Tech",       qty:   600, avg: 428.00, mark: 432.70, mv:   259620, pnl:   2820, pct:  1.10 },
+      { sym: "AMZN", sector: "Consumer",   qty:   420, avg: 184.10, mark: 185.75, mv:    78015, pnl:    693, pct:  0.90 },
+      { sym: "META", sector: "Tech",       qty:  -300, avg: 482.00, mark: 488.10, mv:  -146430, pnl:  -1830, pct: -1.20 },
+      { sym: "JPM",  sector: "Financials", qty:  -500, avg: 196.00, mark: 197.40, mv:   -98700, pnl:   -700, pct: -0.71 },
+    ];
+
+    const sectorColor = (s) =>
+      s === "Tech" ? "blue" :
+      s === "Financials" ? "purple" :
+      s === "Energy" ? "orange" :
+      s === "Healthcare" ? "green" :
+      "turquoise";
+
+    const fmtUSD = (n) => (n < 0 ? "−$" : "$") + Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    const fmtPnL = (n) => (n >= 0 ? "+$" : "−$") + Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
+
+    // ----------- components -----------
+    function KPI({ k }) {
+      const tag =
+        k.tone === "success" ? <Tag type="success" size="sm" structure="solid" label={k.delta} />
+        : k.tone === "warning" ? <Tag type="warning" size="sm" structure="solid" label={k.delta} />
+        : k.tone === "error" ? <Tag type="error" size="sm" structure="solid" label={k.delta} />
+        : <Tag type="basic" size="sm" structure="border" color="gray" label={k.delta} />;
+      return (
+        <div className="kpi-card">
+          <div className="kpi-label">
+            <Tooltip content={k.tip} size="sm" tipSide="top">
+              <span style={{cursor:"help", borderBottom:"1px dotted #cbd5e1"}}>{k.label}</span>
+            </Tooltip>
+          </div>
+          <div className="kpi-value">{k.value}</div>
+          <div className="kpi-delta">{tag}</div>
+        </div>
+      );
+    }
+
+    function MoversPanel() {
+      return (
+        <div className="panel">
+          <h2><Icon icon="ap-icon-bar" /> Top movers</h2>
+          <div className="movers">
+            <div>
+              <div className="col-head">
+                <strong style={{color:"#15803d"}}>Gainers</strong>
+                <Tag type="success" size="sm" structure="borderless" label={`${GAINERS.length} symbols`} />
+              </div>
+              {GAINERS.map(r => (
+                <div className="row" key={r.sym}>
+                  <div><div className="sym">{r.sym}</div><div className="qty">{r.qty}</div></div>
+                  <div style={{textAlign:"right"}}><div className="pl-pos">{r.pnl}</div><div className="qty">{r.pct}</div></div>
+                </div>
+              ))}
+            </div>
+            <div>
+              <div className="col-head">
+                <strong style={{color:"#b91c1c"}}>Losers</strong>
+                <Tag type="error" size="sm" structure="borderless" label={`${LOSERS.length} symbols`} />
+              </div>
+              {LOSERS.map(r => (
+                <div className="row" key={r.sym}>
+                  <div><div className="sym">{r.sym}</div><div className="qty">{r.qty}</div></div>
+                  <div style={{textAlign:"right"}}><div className="pl-neg">{r.pnl}</div><div className="qty">{r.pct}</div></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function PositionsTable() {
+      const [selected, setSelected] = useState({});
+      const allChecked = POSITIONS.every(p => selected[p.sym]);
+      const toggleAll = (v) => setSelected(POSITIONS.reduce((acc, p) => (acc[p.sym] = !!v, acc), {}));
+      return (
+        <div className="panel">
+          <h2><Icon icon="ap-icon-financial" /> Open positions</h2>
+          <table className="book">
+            <thead>
+              <tr>
+                <th className="col-sel"><Checkbox label="" checked={allChecked} onChange={toggleAll} /></th>
+                <th className="col-sym">Symbol</th>
+                <th className="col-sector">Sector</th>
+                <th className="num">Qty</th>
+                <th className="num">Avg</th>
+                <th className="num">Mark</th>
+                <th className="num">Mkt value</th>
+                <th className="num">P&L</th>
+                <th className="col-action"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {POSITIONS.map(p => (
+                <tr key={p.sym}>
+                  <td data-label="" className="col-sel"><Checkbox label="" checked={!!selected[p.sym]} onChange={(v) => setSelected(s => ({...s, [p.sym]: !!v}))} /></td>
+                  <td data-label="Symbol" className="col-sym">
+                    <Tooltip content={`Last fill 15:58 ET · ${p.qty > 0 ? "long" : "short"} · sector ${p.sector}`} size="sm" tipSide="right">
+                      <span className="sym">{p.sym}</span>
+                    </Tooltip>
+                  </td>
+                  <td data-label="Sector" className="col-sector"><Tag type="basic" size="sm" structure="border" color={sectorColor(p.sector)} label={p.sector} /></td>
+                  <td data-label="Qty" className="num">{p.qty.toLocaleString()}</td>
+                  <td data-label="Avg" className="num">{p.avg.toFixed(2)}</td>
+                  <td data-label="Mark" className="num">{p.mark.toFixed(2)}</td>
+                  <td data-label="Mkt value" className="num">{fmtUSD(p.mv)}</td>
+                  <td data-label="P&L" className={"num " + (p.pnl >= 0 ? "pl-pos" : "pl-neg")}>
+                    {fmtPnL(p.pnl)}
+                    <span className="pl-sub">{p.pct >= 0 ? "+" : ""}{p.pct.toFixed(2)}%</span>
+                  </td>
+                  <td data-label="" className="col-action"><Ghost variant="default" noIcon>View</Ghost></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    function LoadingTab() {
+      return (
+        <div className="panel">
+          <div className="loading-state">
+            <Spinner size="md" color="dark" />
+            <span>Loading trade blotter…</span>
+          </div>
+        </div>
+      );
+    }
+
+    function EmptyTab() {
+      return (
+        <div className="panel">
+          <div className="empty-state">
+            <Illustration level={2} category="empty" name="search" size={140} />
+            <h3>No allocations configured</h3>
+            <p>Set up sleeve weights to see how today's P&L splits across strategies.</p>
+            <div className="cta"><Button type="primary" size="md" icon="ap-icon-add">Configure allocations</Button></div>
+          </div>
+        </div>
+      );
+    }
+
+    function ErrorTab() {
+      const toast = useToast();
+      return (
+        <div className="panel">
+          <Banner
+            type="error"
+            size="md"
+            isFullWidth
+            content="Compliance engine returned 503 Service Unavailable. Risk checks are stale as of 3:42 PM ET."
+          />
+          <div style={{display:"flex", gap:8, marginTop:12}}>
+            <Button type="secondary" size="md" icon="ap-icon-sync" onClick={() => toast.success("Retrying compliance check…")}>Retry</Button>
+            <Ghost variant="default" noIcon>View incident log</Ghost>
+          </div>
+        </div>
+      );
+    }
+
+    function SidebarPanel() {
+      const toast = useToast();
+      const [threshold, setThreshold] = useState("50000");
+      const [refresh, setRefresh] = useState("eod");
+      const [watchlist, setWatchlist] = useState(["NVDA", "TSLA", "MSFT"]);
+      const [tags, setTags] = useState(["earnings"]);
+      const [notes, setNotes] = useState("");
+      const [groupSector, setGroupSector] = useState(false);
+      const [hideHedges, setHideHedges] = useState(true);
+      const [reportOpen, setReportOpen] = useState(false);
+
+      return (
+        <aside className="sidebar">
+          <div className="panel">
+            <h2><Icon icon="ap-icon-alert" /> Risk alerts</h2>
+            <div className="stack-sm">
+              <Banner type="warning" size="sm" content="NVDA concentration 27% of NAV — above policy cap." />
+              <Banner type="info" size="sm" content="Vol-target rebalance scheduled tomorrow at open." />
+            </div>
+          </div>
+
+          <div className="panel">
+            <h2><Icon icon="ap-icon-settings" /> Display settings</h2>
+            <div className="stack-md">
+              <Toggle label="Group positions by sector" checked={groupSector} onChange={(v) => setGroupSector(!!v)} labelPosition="right" />
+              <Toggle label="Hide intraday hedges" checked={hideHedges} onChange={(v) => setHideHedges(!!v)} labelPosition="right" />
+              <Input
+                type="number"
+                label="P&L alert threshold ($)"
+                value={threshold}
+                onChange={setThreshold}
+                icon="ap-icon-financial"
+                iconPosition="left"
+                helpText="Trigger a toast when daily P&L crosses this value."
+              />
+              <div>
+                <div style={{fontSize:11, color:"#64748b", marginBottom:8, fontWeight:600, textTransform:"uppercase", letterSpacing:".06em"}}>Refresh cadence</div>
+                <RadioGroup value={refresh} onChange={setRefresh} orientation="vertical" ariaLabel="Refresh cadence">
+                  <Radio label="End of day only" value="eod" />
+                  <Radio label="Every 15 minutes" value="15m" />
+                  <Radio label="Live (websocket)" value="live" />
+                </RadioGroup>
+              </div>
+            </div>
+          </div>
+
+          <div className="panel">
+            <h2><Icon icon="ap-icon-bookmark" /> Watchlist</h2>
+            <TagsFields
+              label="Tracked symbols"
+              options={[
+                { value: "NVDA",  label: "NVDA" },
+                { value: "TSLA",  label: "TSLA" },
+                { value: "AAPL",  label: "AAPL" },
+                { value: "MSFT",  label: "MSFT" },
+                { value: "META",  label: "META" },
+                { value: "GOOGL", label: "GOOGL" },
+                { value: "SPY",   label: "SPY" },
+              ]}
+              value={watchlist}
+              onChange={setWatchlist}
+              multiSelect
+              searchable
+              searchPlaceholder="Add symbol"
+            />
+          </div>
+
+          <div className="panel">
+            <h2><Icon icon="ap-icon-comment" /> Day notes</h2>
+            <div className="stack-md">
+              <Creatable
+                label="Day tags"
+                options={[
+                  { value: "volatile",  label: "Volatile" },
+                  { value: "earnings",  label: "Earnings week" },
+                  { value: "fomc",      label: "FOMC" },
+                  { value: "rebalance", label: "Rebalance" },
+                ]}
+                value={tags}
+                onChange={setTags}
+                multiSelect
+              />
+              <Textarea
+                label="Notes"
+                value={notes}
+                onChange={setNotes}
+                rows={3}
+                placeholder="Anything notable about today's session?"
+                fullWidth
+                resize="vertical"
+              />
+            </div>
+          </div>
+
+          <Button type="primary" size="md" icon="ap-icon-send" onClick={() => setReportOpen(true)}>
+            Send daily report
+          </Button>
+
+          <Dialog
+            isOpen={reportOpen}
+            onClose={() => setReportOpen(false)}
+            title="Send daily report"
+            description="Email an end-of-day P&L summary with attached CSV to the desk distribution list."
+            confirmButtonText="Send report"
+            cancelButtonText="Cancel"
+            onConfirm={() => { setReportOpen(false); toast.success("Daily report queued for delivery."); }}
+            onCancel={() => setReportOpen(false)}
+          />
+        </aside>
+      );
+    }
+
+    function Dashboard() {
+      const [tab, setTab]               = useState("overview");
+      const [date, setDate]             = useState(new Date("2026-05-14T16:00:00Z"));
+      const [accounts, setAccounts]     = useState(["all"]);
+      const [classes, setClasses]       = useState([]);
+      const [closedOnly, setClosedOnly] = useState(false);
+      const [search, setSearch]         = useState("");
+
+      return (
+        <>
+          <NavBar
+            projectName="TradingDesk"
+            projectLogoIcon="ap-icon-logo-vault"
+            activeMenuItemHref="#dashboard"
+            menuItems={[
+              { label: "Dashboard", href: "#dashboard" },
+              { label: "Positions", href: "#positions" },
+              { label: "Trades",    href: "#trades" },
+              { label: "Reports",   href: "#reports" },
+              { label: "Settings",  href: "#settings" },
+            ]}
+            additionalItems={{
+              notifications: {
+                count: 3,
+                content: (
+                  <div style={{padding:12, minWidth:240}}>
+                    <strong style={{fontSize:13}}>3 unread alerts</strong>
+                    <div style={{fontSize:12, color:"#64748b", marginTop:4}}>
+                      NVDA concentration · Vol rebalance · Risk engine 503
+                    </div>
+                  </div>
+                ),
+              },
+              userProfile: {
+                initials: "JB",
+                content: (
+                  <div style={{padding:12, minWidth:220}}>
+                    <strong>Julian Benitez</strong>
+                    <div style={{fontSize:12, color:"#64748b"}}>jbenitez@alixpartners.com</div>
+                    <div style={{marginTop:8}}>
+                      <Ghost variant="cancel" icon="ap-icon-logout">Sign out</Ghost>
+                    </div>
+                  </div>
+                ),
+              },
+            }}
+          />
+
+          <div className="page-wrap">
+            <div style={{height:16}} />
+            <Banner
+              type="info"
+              size="md"
+              isFullWidth
+              icon="ap-icon-clock"
+              content="Market closed at 4:00 PM ET · End-of-day reconciliation completed at 4:18 PM."
+            />
+
+            <div className="title-row">
+              <div>
+                <h1>End-of-day snapshot</h1>
+                <p className="sub">Trading day · Thursday, May 14, 2026</p>
+              </div>
+              <Datepicker
+                label="Date"
+                value={date}
+                onChange={(d) => d && setDate(d)}
+                dateFormat="Mon DD, YYYY"
+              />
+              <div className="export-cell">
+                <SplitButton
+                  type="primary"
+                  trigger="split"
+                  size="md"
+                  buttonLabel="Export EOD"
+                  actionOptions={EXPORT_ACTIONS}
+                />
+              </div>
+            </div>
+
+            <div className="filter-row">
+              <Search
+                value={search}
+                onChange={setSearch}
+                placeholder="Find symbol or strategy"
+                label="Search"
+              />
+              <Dropdown
+                label="Account"
+                options={ACCOUNT_OPTIONS}
+                value={accounts}
+                onChange={setAccounts}
+                placeholder="All accounts"
+              />
+              <Dropdown
+                label="Asset class"
+                options={ASSET_CLASS_OPTIONS}
+                value={classes}
+                onChange={setClasses}
+                placeholder="All asset classes"
+                multiSelect
+                searchable
+              />
+              <div className="toggle-cell">
+                <Toggle
+                  label="Closed only"
+                  checked={closedOnly}
+                  onChange={(v) => setClosedOnly(!!v)}
+                  labelPosition="right"
+                />
+              </div>
+            </div>
+
+            <div className="kpi-grid">
+              {KPIS.map(k => <KPI key={k.id} k={k} />)}
+            </div>
+
+            <TabNavigation align="left">
+              <Tab label="Overview"    active={tab === "overview"}    onClick={() => setTab("overview")} />
+              <Tab label="Positions"   numberCount={24}  active={tab === "positions"}   onClick={() => setTab("positions")} />
+              <Tab label="Trades"      numberCount={142} active={tab === "trades"}      onClick={() => setTab("trades")} />
+              <Tab label="Allocations" active={tab === "allocations"} onClick={() => setTab("allocations")} />
+              <Tab label="Compliance"  hasError numberCount={2} active={tab === "compliance"} onClick={() => setTab("compliance")} />
+            </TabNavigation>
+
+            <div style={{height:16}} />
+
+            <div className="main-grid">
+              <div className="panel-stack">
+                {tab === "overview"    && <><MoversPanel /><PositionsTable /></>}
+                {tab === "positions"   && <PositionsTable />}
+                {tab === "trades"      && <LoadingTab />}
+                {tab === "allocations" && <EmptyTab />}
+                {tab === "compliance"  && <ErrorTab />}
+              </div>
+              <SidebarPanel />
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    function App() {
+      return (
+        <ToastProvider maxSnack={3} autoHideDuration={4000} anchorOrigin={{ vertical: "bottom", horizontal: "right" }}>
+          <Dashboard />
+        </ToastProvider>
+      );
+    }
+
+    createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

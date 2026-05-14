@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "design-prototype": {
+      "source": "elAgala/agala-ai",
+      "sourceType": "github",
+      "skillPath": "skills/design-prototype/SKILL.md",
+      "computedHash": "131c222343b2a4f1168a297447835869ccea1126741b8cdb0779bc61119e6322"
+    }
+  }
+}

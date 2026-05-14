@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Settings — prototype</title>
+  <link rel="stylesheet" href="../vendor/alix-ui.css" />
+  <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f6f7f9; color: #0f172a; }
+    .page-wrap { max-width: 1280px; margin: 0 auto; padding: 0 24px 120px; }
+
+    .title-block { margin: 24px 0 16px; }
+    .title-block h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.01em; }
+    .title-block .sub { margin: 4px 0 0; color: #64748b; font-size: 13px; }
+
+    .settings-shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 24px; align-items: start; }
+    .settings-nav { position: sticky; top: 16px; background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px; display: flex; flex-direction: column; }
+    .settings-nav button {
+      appearance: none; background: transparent; border: none;
+      text-align: left; padding: 8px 12px; border-radius: 8px;
+      font-size: 13px; font-weight: 500; color: #334155; cursor: pointer;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .settings-nav button:hover { background: #f1f5f9; }
+    .settings-nav button.active { background: #eef2ff; color: #1e293b; font-weight: 600; }
+    .settings-nav button.danger.active { background: #fee2e2; color: #991b1b; }
+    .settings-nav button .nav-icon { width: 14px; display: inline-flex; }
+    .settings-nav .nav-sep { height: 1px; background: #e2e8f0; margin: 6px 4px; }
+
+    .panel { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; }
+    .panel + .panel, .stack-panel > * + * { margin-top: 16px; }
+    .panel h2 { margin: 0 0 4px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+    .panel .panel-sub { margin: 0 0 16px; color: #64748b; font-size: 13px; }
+
+    .section { border-top: 1px solid #f1f5f9; padding-top: 16px; margin-top: 16px; }
+    .section:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+    .section h3 { margin: 0 0 4px; font-size: 14px; font-weight: 600; }
+    .section .section-sub { margin: 0 0 12px; color: #64748b; font-size: 12px; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-grid .span-2 { grid-column: 1 / -1; }
+    .field-row { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding: 10px 0; border-bottom: 1px dashed #e2e8f0; }
+    .field-row:last-child { border-bottom: none; }
+    .field-row .name { font-size: 13px; font-weight: 600; color: #0f172a; }
+    .field-row .desc { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+    .source-card { display: grid; grid-template-columns: 32px 1fr auto auto; gap: 12px; align-items: center; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: #fafbfc; }
+    .source-card + .source-card { margin-top: 8px; }
+    .source-card .src-name { font-weight: 600; font-size: 14px; }
+    .source-card .src-desc { font-size: 12px; color: #64748b; margin-top: 2px; }
+    .source-card .src-icon { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: #eef2ff; color: #1e40af; border-radius: 8px; }
+
+    table.keys { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    table.keys th, table.keys td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+    table.keys thead th { color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; background: #f8fafc; }
+    table.keys .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    table.keys tbody tr:hover { background: #f8fafc; }
+
+    .danger-action { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding: 14px; border: 1px solid #fecaca; border-radius: 10px; background: #fef2f2; }
+    .danger-action + .danger-action { margin-top: 8px; }
+    .danger-action h4 { margin: 0 0 4px; font-size: 14px; color: #991b1b; font-weight: 700; }
+    .danger-action p { margin: 0; color: #7f1d1d; font-size: 12px; }
+
+    .save-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: white; border-top: 1px solid #e2e8f0;
+      padding: 12px 24px; display: flex; justify-content: flex-end; gap: 8px; align-items: center;
+      z-index: 40;
+    }
+    .save-bar .dirty-pill { margin-right: auto; font-size: 12px; color: #64748b; display: flex; gap: 8px; align-items: center; }
+
+    .design-badge { position: fixed; bottom: 64px; right: 12px; font: 600 11px/1 system-ui; padding: 6px 10px; background: #111; color: #fff; border-radius: 999px; z-index: 50; }
+
+    @media (max-width: 900px) {
+      .settings-shell { grid-template-columns: 1fr; }
+      .settings-nav { position: static; flex-direction: row; overflow-x: auto; padding: 6px; }
+      .settings-nav .nav-sep { display: none; }
+      .form-grid { grid-template-columns: 1fr; }
+      .source-card { grid-template-columns: 32px 1fr auto; }
+      .source-card .src-status { grid-column: 2 / 3; grid-row: 2; justify-self: start; }
+    }
+    @media (max-width: 640px) {
+      .page-wrap { padding: 0 12px 120px; }
+      .save-bar { padding: 12px; flex-wrap: wrap; }
+      .save-bar .dirty-pill { width: 100%; margin-bottom: 6px; }
+      table.keys thead { display: none; }
+      table.keys, table.keys tbody, table.keys tr { display: block; width: 100%; }
+      table.keys tr { border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; }
+      table.keys td { border: none; padding: 4px 0; display: grid; grid-template-columns: 100px 1fr; align-items: center; }
+      table.keys td::before { content: attr(data-label); color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
+      table.keys td:first-child::before { content: ""; }
+    }
+    @media (max-width: 400px) {
+      .title-block h1 { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div class="design-badge">settings — prototype</div>
+
+  <script type="text/babel" data-type="module" data-presets="react">
+    import {
+      React, createRoot,
+      NavBar, Banner, Button, Ghost, Tag, Tooltip, Toggle, Checkbox,
+      Input, Search, Datepicker, Dropdown, SplitButton, TabNavigation, Tab,
+      Spinner, Icon, Dialog, ToastProvider, useToast, Textarea, TagsFields,
+      Creatable, RadioGroup, Radio, Illustration, FilePicker
+    } from "../vendor/alix-ui.js";
+    const { useState, useMemo } = React;
+
+    const SECTIONS = [
+      { id: "profile",    label: "Profile",         icon: "ap-icon-person" },
+      { id: "notifs",     label: "Notifications",   icon: "ap-icon-notification-filled" },
+      { id: "display",    label: "Display & theme", icon: "ap-icon-color" },
+      { id: "trading",    label: "Trading defaults",icon: "ap-icon-financial" },
+      { id: "sources",    label: "Data sources",    icon: "ap-icon-sync" },
+      { id: "api",        label: "API keys",        icon: "ap-icon-key" },
+      { id: "security",   label: "Security",        icon: "ap-icon-lock" },
+    ];
+
+    function SideNav({ active, onPick, dangerOpen }) {
+      return (
+        <nav className="settings-nav" aria-label="Settings sections">
+          {SECTIONS.map(s => (
+            <button
+              key={s.id}
+              className={active === s.id ? "active" : ""}
+              onClick={() => onPick(s.id)}
+            >
+              <span className="nav-icon"><Icon icon={s.icon} /></span>
+              {s.label}
+            </button>
+          ))}
+          <div className="nav-sep" />
+          <button
+            className={"danger " + (active === "danger" ? "active" : "")}
+            onClick={() => onPick("danger")}
+          >
+            <span className="nav-icon"><Icon icon="ap-icon-alert" /></span>
+            Danger zone
+          </button>
+        </nav>
+      );
+    }
+
+    // ----------- Profile -----------
+    function ProfileSection({ markDirty }) {
+      const [name, setName] = useState("Julian Benitez");
+      const [email, setEmail] = useState("jbenitez@alixpartners.com");
+      const [role, setRole] = useState("portfolio-manager");
+      const [bio, setBio] = useState("");
+      const [teams, setTeams] = useState(["equities-desk", "risk-review"]);
+
+      const change = (setter) => (v) => { setter(v); markDirty(); };
+
+      return (
+        <div className="panel">
+          <h2>Profile</h2>
+          <p className="panel-sub">Identifies you across the trading desk and on emailed reports.</p>
+
+          <div className="form-grid">
+            <Input type="text" label="Full name" value={name} onChange={change(setName)} required />
+            <Input
+              type="text"
+              label="Work email"
+              value={email}
+              onChange={change(setEmail)}
+              icon="ap-icon-mail"
+              iconPosition="left"
+              disabled
+              helpText="Managed by your AlixPartners SSO."
+            />
+            <Dropdown
+              label="Role"
+              options={[
+                { value: "portfolio-manager", label: "Portfolio Manager" },
+                { value: "trader",            label: "Trader" },
+                { value: "risk",              label: "Risk Analyst" },
+                { value: "ops",               label: "Operations" },
+                { value: "viewer",            label: "Viewer (read-only)" },
+              ]}
+              value={[role]}
+              onChange={(vs) => { setRole(vs[0] || role); markDirty(); }}
+            />
+            <Datepicker
+              label="Started"
+              value={new Date("2024-09-02")}
+              onChange={() => markDirty()}
+              dateFormat="Mon DD, YYYY"
+              disabled
+              helpText="Provisioned by HR."
+            />
+            <div className="span-2">
+              <TagsFields
+                label="Teams"
+                options={[
+                  { value: "equities-desk", label: "Equities desk" },
+                  { value: "macro-desk",    label: "Macro desk" },
+                  { value: "risk-review",   label: "Risk review" },
+                  { value: "ops-rota",      label: "Ops rotation" },
+                ]}
+                value={teams}
+                onChange={(v) => { setTeams(v); markDirty(); }}
+                multiSelect
+                searchable
+                searchPlaceholder="Add team"
+                helpText="You'll get alerts targeted at any of your teams."
+              />
+            </div>
+            <div className="span-2">
+              <FilePicker
+                type="single"
+                label="Profile photo"
+                fileExtensionsAllowed={["png", "jpg", "jpeg"]}
+                maxSize={2 * 1024 * 1024}
+                placeholder="PNG or JPG, ≤ 2 MB"
+                onUpload={() => markDirty()}
+              />
+            </div>
+            <div className="span-2">
+              <Textarea
+                label="About"
+                value={bio}
+                onChange={change(setBio)}
+                rows={3}
+                placeholder="Optional. Visible to the desk when they hover your avatar."
+                fullWidth
+                resize="vertical"
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ----------- Notifications -----------
+    function NotifSection({ markDirty }) {
+      const [channels, setChannels] = useState({ email: true, slack: true, sms: false, inapp: true });
+      const [events, setEvents] = useState({ fill: true, threshold: true, risk: true, daily: false, compliance: true });
+      const [severity, setSeverity] = useState(["warning"]);
+      const [quiet, setQuiet] = useState("off");
+      const [cc, setCc] = useState("");
+      const set = (group, key) => (v) => { group(prev => ({ ...prev, [key]: !!v })); markDirty(); };
+
+      return (
+        <div className="panel">
+          <h2>Notifications</h2>
+          <p className="panel-sub">Changes apply immediately. Quiet hours are honored across all channels.</p>
+
+          <Banner type="info" size="sm" content="Severity threshold filters out anything below the chosen level." />
+
+          <div className="section">
+            <h3>Channels</h3>
+            <p className="section-sub">Where notifications are delivered.</p>
+            <Toggle label="Email" checked={channels.email} onChange={set(setChannels, "email")} labelPosition="right" />
+            <div style={{height:8}} />
+            <Toggle label="Slack DM" checked={channels.slack} onChange={set(setChannels, "slack")} labelPosition="right" />
+            <div style={{height:8}} />
+            <Toggle label="SMS (carrier rates apply)" checked={channels.sms} onChange={set(setChannels, "sms")} labelPosition="right" />
+            <div style={{height:8}} />
+            <Toggle label="In-app banner" checked={channels.inapp} onChange={set(setChannels, "inapp")} labelPosition="right" />
+          </div>
+
+          <div className="section">
+            <h3>What to notify on</h3>
+            <p className="section-sub">Pick the events you want to hear about.</p>
+            <Checkbox label="New fill on any position I hold"           checked={events.fill}        onChange={set(setEvents, "fill")} />
+            <div style={{height:8}} />
+            <Checkbox label="P&L threshold breach (uses dashboard threshold)" checked={events.threshold} onChange={set(setEvents, "threshold")} />
+            <div style={{height:8}} />
+            <Checkbox label="Risk alerts (concentration, VaR)"          checked={events.risk}        onChange={set(setEvents, "risk")} />
+            <div style={{height:8}} />
+            <Checkbox label="Daily EOD summary email"                   checked={events.daily}       onChange={set(setEvents, "daily")} />
+            <div style={{height:8}} />
+            <Checkbox label="Compliance / surveillance flags"           checked={events.compliance}  onChange={set(setEvents, "compliance")} />
+          </div>
+
+          <div className="section">
+            <div className="form-grid">
+              <Dropdown
+                label="Minimum severity"
+                options={[
+                  { value: "info",    label: "Info — everything" },
+                  { value: "warning", label: "Warning and above" },
+                  { value: "error",   label: "Error only" },
+                ]}
+                value={severity}
+                onChange={(v) => { setSeverity(v); markDirty(); }}
+                helpText="Notifications below this level are silent."
+              />
+              <div>
+                <div style={{fontSize:11, color:"#64748b", marginBottom:8, fontWeight:600, textTransform:"uppercase", letterSpacing:".06em"}}>Quiet hours</div>
+                <RadioGroup value={quiet} onChange={(v) => { setQuiet(v); markDirty(); }} orientation="vertical" ariaLabel="Quiet hours">
+                  <Radio label="Off — always notify" value="off" />
+                  <Radio label="Outside trading hours (8 PM – 7 AM ET)" value="market" />
+                  <Radio label="Weekends only" value="weekend" />
+                </RadioGroup>
+              </div>
+              <div className="span-2">
+                <Input
+                  type="text"
+                  label="CC additional recipients"
+                  value={cc}
+                  onChange={(v) => { setCc(v); markDirty(); }}
+                  placeholder="comma-separated emails"
+                  icon="ap-icon-at"
+                  iconPosition="left"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ----------- Display -----------
+    function DisplaySection({ markDirty }) {
+      const [theme, setTheme] = useState("light");
+      const [density, setDensity] = useState("comfortable");
+      const [landing, setLanding] = useState(["dashboard"]);
+      const [timeFmt, setTimeFmt] = useState(["24h"]);
+      const [reduceMotion, setReduceMotion] = useState(false);
+      const [separators, setSeparators] = useState(true);
+
+      return (
+        <div className="panel">
+          <h2>Display & theme</h2>
+          <p className="panel-sub">Affects only your account on this device.</p>
+
+          <div className="section">
+            <h3>Theme</h3>
+            <RadioGroup value={theme} onChange={(v) => { setTheme(v); markDirty(); }} orientation="horizontal" ariaLabel="Theme">
+              <Radio label="Light"  value="light" />
+              <Radio label="Dark"   value="dark" />
+              <Radio label="Auto (system)" value="auto" />
+            </RadioGroup>
+          </div>
+
+          <div className="section">
+            <h3>Density</h3>
+            <RadioGroup value={density} onChange={(v) => { setDensity(v); markDirty(); }} orientation="horizontal" ariaLabel="Density">
+              <Radio label="Compact" value="compact" />
+              <Radio label="Comfortable" value="comfortable" />
+              <Radio label="Spacious" value="spacious" />
+            </RadioGroup>
+          </div>
+
+          <div className="section">
+            <h3>Behavior</h3>
+            <Toggle label="Reduce motion (disable transitions)" checked={reduceMotion} onChange={(v) => { setReduceMotion(!!v); markDirty(); }} labelPosition="right" />
+            <div style={{height:8}} />
+            <Toggle label="Show thousands separators in tables"  checked={separators}   onChange={(v) => { setSeparators(!!v); markDirty(); }} labelPosition="right" />
+          </div>
+
+          <div className="section">
+            <div className="form-grid">
+              <Dropdown
+                label="Default landing page"
+                options={[
+                  { value: "dashboard",  label: "Dashboard (EOD snapshot)" },
+                  { value: "positions",  label: "Positions" },
+                  { value: "trades",     label: "Trades" },
+                  { value: "reports",    label: "Reports" },
+                ]}
+                value={landing}
+                onChange={(v) => { setLanding(v); markDirty(); }}
+              />
+              <Dropdown
+                label="Time format"
+                options={[
+                  { value: "12h", label: "12-hour (4:00 PM ET)" },
+                  { value: "24h", label: "24-hour (16:00 ET)" },
+                ]}
+                value={timeFmt}
+                onChange={(v) => { setTimeFmt(v); markDirty(); }}
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ----------- Trading defaults -----------
+    function TradingSection({ markDirty }) {
+      const [size, setSize] = useState("100");
+      const [orderType, setOrderType] = useState(["limit"]);
+      const [confirm, setConfirm] = useState(true);
+      const [slippage, setSlippage] = useState("0.10");
+      const [lossCap, setLossCap] = useState("250000");
+      const [lookback, setLookback] = useState(new Date("2026-01-01T00:00:00Z"));
+
+      return (
+        <div className="panel">
+          <h2>Trading defaults</h2>
+          <p className="panel-sub">Pre-fill the order ticket. Each value can still be overridden per trade.</p>
+
+          <Banner type="warning" size="sm" content="These defaults apply to NEW orders only. Open orders are not retroactively changed." />
+
+          <div className="section">
+            <div className="form-grid">
+              <Input type="number" label="Default position size (shares)" value={size}     onChange={(v) => { setSize(v); markDirty(); }} icon="ap-icon-aggregation" iconPosition="left" />
+              <Dropdown
+                label="Default order type"
+                options={[
+                  { value: "market", label: "Market" },
+                  { value: "limit",  label: "Limit" },
+                  { value: "stop",   label: "Stop" },
+                  { value: "twap",   label: "TWAP" },
+                ]}
+                value={orderType}
+                onChange={(v) => { setOrderType(v); markDirty(); }}
+              />
+              <Input type="number" label="Max slippage (%)"           value={slippage} onChange={(v) => { setSlippage(v); markDirty(); }} helpText="Limit orders reject if slippage exceeds this." />
+              <Input type="number" label="Daily loss cap ($)"          value={lossCap}  onChange={(v) => { setLossCap(v); markDirty(); }} icon="ap-icon-financial" iconPosition="left" />
+              <Datepicker label="Default backtest start" value={lookback} onChange={(d) => { d && setLookback(d); markDirty(); }} dateFormat="Mon DD, YYYY" />
+              <div style={{display:"flex", alignItems:"end"}}>
+                <Toggle label="Confirm before submit" checked={confirm} onChange={(v) => { setConfirm(!!v); markDirty(); }} labelPosition="right" />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ----------- Data sources -----------
+    function SourcesSection({ markDirty }) {
+      const toast = useToast();
+      const [sources, setSources] = useState({
+        bloomberg: { on: true,  status: "live" },
+        factset:   { on: true,  status: "live" },
+        refinitiv: { on: true,  status: "error" },
+        yahoo:     { on: false, status: "stale" },
+        internal:  { on: true,  status: "live" },
+      });
+      const tone = (s) => s === "live" ? <Tag type="success" size="sm" structure="solid" label="Live" />
+                         : s === "stale" ? <Tag type="warning" size="sm" structure="solid" label="Stale" />
+                         :                  <Tag type="error"   size="sm" structure="solid" label="Error" />;
+      const toggle = (key) => (v) => { setSources(s => ({...s, [key]: { ...s[key], on: !!v }})); markDirty(); };
+
+      const meta = {
+        bloomberg: { name: "Bloomberg B-PIPE",   desc: "Reference data & real-time quotes." },
+        factset:   { name: "FactSet AI-Ready",   desc: "Fundamentals & ownership data."     },
+        refinitiv: { name: "Refinitiv Eikon",    desc: "Cross-asset pricing & corp actions."},
+        yahoo:     { name: "Yahoo Finance",      desc: "Free fallback. Quotes only."        },
+        internal:  { name: "AlixPartners Vault", desc: "Internal positions & desk fills."   },
+      };
+
+      return (
+        <div className="panel">
+          <h2>Data sources</h2>
+          <p className="panel-sub">Connections that feed prices, fundamentals, and fills into the dashboard.</p>
+
+          {sources.refinitiv.status === "error" && (
+            <Banner
+              type="error"
+              size="md"
+              isFullWidth
+              content="Refinitiv Eikon connection failed at 3:42 PM ET. Falling back to Bloomberg quotes."
+              onClose={() => {}}
+            />
+          )}
+
+          <div className="section">
+            {Object.keys(sources).map(key => (
+              <div className="source-card" key={key}>
+                <span className="src-icon"><Icon icon="ap-icon-sync" /></span>
+                <div>
+                  <div className="src-name">{meta[key].name}</div>
+                  <div className="src-desc">{meta[key].desc}</div>
+                </div>
+                <div className="src-status">{tone(sources[key].status)}</div>
+                <div style={{display:"flex", gap:8, alignItems:"center"}}>
+                  <Toggle label="Enabled" checked={sources[key].on} onChange={toggle(key)} labelPosition="right" />
+                  <Ghost variant="default" icon="ap-icon-settings" onClick={() => toast.success(`Opened ${meta[key].name} config`)}>Configure</Ghost>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="section" style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+            <span style={{fontSize:13, color:"#64748b"}}>Need another feed? Add a custom one.</span>
+            <SplitButton
+              type="secondary"
+              trigger="split"
+              size="md"
+              buttonLabel="Add source"
+              actionOptions={[
+                { value: "rest", label: "REST endpoint",   action: () => toast.success("New REST source draft") },
+                { value: "ws",   label: "WebSocket feed",  action: () => toast.success("New WebSocket source draft") },
+                { value: "csv",  label: "CSV (manual upload)", action: () => toast.success("New CSV source draft") },
+              ]}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // ----------- API keys -----------
+    function ApiSection({ markDirty }) {
+      const toast = useToast();
+      const [keys, setKeys] = useState([
+        { id: "1", name: "Production data sync", scope: "read",  created: "Jan 12, 2026", lastUsed: "2 min ago",  prefix: "ak_live_4f2a…" },
+        { id: "2", name: "Backtest runner",      scope: "read",  created: "Dec 04, 2025", lastUsed: "1 hr ago",   prefix: "ak_live_8b1c…" },
+        { id: "3", name: "Order desk webhook",   scope: "write", created: "Nov 21, 2025", lastUsed: "5 min ago",  prefix: "ak_live_d9e7…" },
+        { id: "4", name: "Legacy reports CLI",   scope: "read",  created: "Aug 02, 2025", lastUsed: "30 days ago", prefix: "ak_live_2a3f…" },
+      ]);
+      const [newName, setNewName] = useState("");
+      const [newKeyOpen, setNewKeyOpen] = useState(false);
+      const [revokeId, setRevokeId] = useState(null);
+      const [createdKey, setCreatedKey] = useState(null);
+      const [reveal, setReveal] = useState(false);
+
+      const create = () => {
+        if (!newName.trim()) { toast.error("Name is required."); return; }
+        const k = { id: String(Date.now()), name: newName.trim(), scope: "read", created: "today", lastUsed: "—", prefix: "ak_live_" + Math.random().toString(36).slice(2, 6) + "…" };
+        const secret = "ak_live_" + Math.random().toString(36).slice(2, 30);
+        setKeys([k, ...keys]);
+        setCreatedKey(secret);
+        setNewName("");
+        setNewKeyOpen(false);
+        markDirty();
+      };
+      const revoke = () => {
+        setKeys(keys.filter(k => k.id !== revokeId));
+        setRevokeId(null);
+        toast.success("API key revoked.");
+        markDirty();
+      };
+
+      return (
+        <div className="panel">
+          <h2>API keys</h2>
+          <p className="panel-sub">Programmatic access for backtests, sync jobs, and the order desk webhook.</p>
+
+          <Banner type="warning" size="sm" content="Treat keys like passwords. Rotate any key that may have leaked." />
+
+          <div className="section">
+            <h3>Create a new key</h3>
+            <div className="form-grid">
+              <Input type="text" label="Name" value={newName} onChange={setNewName} placeholder="e.g. PnL backtest job" />
+              <div style={{display:"flex", alignItems:"end"}}>
+                <Button type="primary" size="md" icon="ap-icon-key" onClick={() => setNewKeyOpen(true)}>
+                  Generate key
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="section">
+            <h3>Existing keys</h3>
+            <table className="keys">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Scope</th>
+                  <th>Prefix</th>
+                  <th>Created</th>
+                  <th>Last used</th>
+                  <th style={{textAlign:"right"}}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {keys.map(k => (
+                  <tr key={k.id}>
+                    <td data-label="Name"><strong>{k.name}</strong></td>
+                    <td data-label="Scope">
+                      {k.scope === "write"
+                        ? <Tag type="basic" size="sm" structure="solid" color="red"  label="write" />
+                        : <Tag type="basic" size="sm" structure="border" color="blue" label="read" />}
+                    </td>
+                    <td data-label="Prefix" className="mono">{k.prefix}</td>
+                    <td data-label="Created">{k.created}</td>
+                    <td data-label="Last used">{k.lastUsed}</td>
+                    <td data-label="Actions" style={{textAlign:"right"}}>
+                      <Ghost variant="default" icon="ap-icon-sync" onClick={() => toast.success(`Rotated "${k.name}"`)}>Rotate</Ghost>
+                      <Ghost variant="danger" icon="ap-icon-delete" onClick={() => setRevokeId(k.id)}>Revoke</Ghost>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <Dialog
+            isOpen={newKeyOpen}
+            onClose={() => setNewKeyOpen(false)}
+            title="Generate API key"
+            description={`Create a new key named "${newName || "untitled"}". The full secret will be shown once — you won't see it again.`}
+            confirmButtonText="Generate"
+            cancelButtonText="Cancel"
+            onConfirm={create}
+            onCancel={() => setNewKeyOpen(false)}
+          />
+
+          <Dialog
+            isOpen={!!createdKey}
+            onClose={() => { setCreatedKey(null); setReveal(false); }}
+            title="Your new API key"
+            description={(
+              <>
+                <p style={{margin:"0 0 8px"}}>Copy it now. We don't keep a plain-text copy — if you lose it, generate a new one.</p>
+                <div style={{display:"flex", gap:8, alignItems:"end"}}>
+                  <div style={{flex:1}}>
+                    <Input type={reveal ? "text" : "password"} label="Secret" value={createdKey || ""} onChange={() => {}} />
+                  </div>
+                  <Button type="secondary" size="md" icon={reveal ? "ap-icon-hide" : "ap-icon-show"} onClick={() => setReveal(r => !r)}>
+                    {reveal ? "Hide" : "Reveal"}
+                  </Button>
+                  <Button type="secondary" size="md" icon="ap-icon-copy" onClick={() => { navigator.clipboard?.writeText(createdKey || ""); toast.success("Copied to clipboard."); }}>
+                    Copy
+                  </Button>
+                </div>
+              </>
+            )}
+            confirmButtonText="I've saved it"
+            onConfirm={() => { setCreatedKey(null); setReveal(false); }}
+          />
+
+          <Dialog
+            isOpen={!!revokeId}
+            onClose={() => setRevokeId(null)}
+            title="Revoke this API key?"
+            description="Any service using this key will start receiving 401 errors immediately. This action can't be undone."
+            confirmButtonText="Revoke key"
+            confirmButtonVariant="danger"
+            cancelButtonText="Keep it"
+            onConfirm={revoke}
+            onCancel={() => setRevokeId(null)}
+          />
+        </div>
+      );
+    }
+
+    // ----------- Security -----------
+    function SecuritySection({ markDirty }) {
+      const toast = useToast();
+      const [mfa, setMfa] = useState("authenticator");
+      const [sso, setSso] = useState(true);
+      const [sessionTimeout, setSessionTimeout] = useState(["8h"]);
+
+      return (
+        <div className="panel">
+          <h2>Security</h2>
+          <p className="panel-sub">SSO is enforced by your AlixPartners workspace. Some controls are managed by IT.</p>
+
+          <div className="section">
+            <h3>Sign-in</h3>
+            <div className="form-grid">
+              <div>
+                <div style={{fontSize:11, color:"#64748b", marginBottom:8, fontWeight:600, textTransform:"uppercase", letterSpacing:".06em"}}>Multi-factor method</div>
+                <RadioGroup value={mfa} onChange={(v) => { setMfa(v); markDirty(); }} orientation="vertical" ariaLabel="MFA method">
+                  <Radio label="Authenticator app (TOTP)" value="authenticator" />
+                  <Radio label="Security key (WebAuthn)"  value="webauthn" />
+                  <Radio label="SMS one-time code"        value="sms" />
+                </RadioGroup>
+              </div>
+              <div>
+                <Toggle label="Force SSO on every browser session" checked={sso} onChange={(v) => { setSso(!!v); markDirty(); }} labelPosition="right" disabled />
+                <div style={{fontSize:12, color:"#64748b", marginTop:4}}>Managed by IT. Contact platforms@alixpartners.com to change.</div>
+                <div style={{height:16}} />
+                <Dropdown
+                  label="Idle session timeout"
+                  options={[
+                    { value: "15m", label: "15 minutes" },
+                    { value: "1h",  label: "1 hour" },
+                    { value: "8h",  label: "8 hours" },
+                    { value: "24h", label: "24 hours" },
+                  ]}
+                  value={sessionTimeout}
+                  onChange={(v) => { setSessionTimeout(v); markDirty(); }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="section">
+            <h3>Active sessions</h3>
+            <table className="keys">
+              <thead>
+                <tr>
+                  <th>Device</th>
+                  <th>Location</th>
+                  <th>Last active</th>
+                  <th style={{textAlign:"right"}}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td data-label="Device"><strong>MacBook Pro · Chrome 128</strong> <Tag type="success" size="sm" structure="borderless" label="this session" /></td>
+                  <td data-label="Location">Buenos Aires, AR</td>
+                  <td data-label="Last active">just now</td>
+                  <td data-label="Actions" style={{textAlign:"right"}}><Ghost variant="default" noIcon disabled>—</Ghost></td>
+                </tr>
+                <tr>
+                  <td data-label="Device">iPhone · Safari iOS 18</td>
+                  <td data-label="Location">Buenos Aires, AR</td>
+                  <td data-label="Last active">3 hours ago</td>
+                  <td data-label="Actions" style={{textAlign:"right"}}><Ghost variant="danger" icon="ap-icon-logout" onClick={() => toast.success("Signed out remotely")}>Sign out</Ghost></td>
+                </tr>
+                <tr>
+                  <td data-label="Device">Windows · Edge 122</td>
+                  <td data-label="Location">New York, US</td>
+                  <td data-label="Last active">2 days ago</td>
+                  <td data-label="Actions" style={{textAlign:"right"}}><Ghost variant="danger" icon="ap-icon-logout" onClick={() => toast.success("Signed out remotely")}>Sign out</Ghost></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
+
+    // ----------- Danger zone -----------
+    function DangerSection({ markDirty }) {
+      const toast = useToast();
+      const [open, setOpen] = useState(null);
+
+      const actions = [
+        { id: "reset",     title: "Reset preferences", desc: "Restores theme, density, and notification settings to defaults. Watchlists and trading defaults are preserved.", verb: "Reset" },
+        { id: "watchlist", title: "Delete all watchlists", desc: "Permanently deletes every saved watchlist on this account. Tracked symbols on the dashboard will go empty.", verb: "Delete" },
+        { id: "data",      title: "Export & wipe local data", desc: "Downloads a JSON snapshot of preferences and then clears local browser storage for this app.", verb: "Export & wipe" },
+        { id: "account",   title: "Close account", desc: "Permanently deactivates your TradingDesk access. Open orders are not closed automatically — coordinate with the desk first.", verb: "Close" },
+      ];
+
+      return (
+        <div className="panel">
+          <h2>Danger zone</h2>
+          <p className="panel-sub">These actions are destructive and can't be undone from the UI.</p>
+          <Banner type="error" size="md" isFullWidth content="Read each description carefully. Some actions affect live trading positions." />
+          <div className="section">
+            {actions.map(a => (
+              <div className="danger-action" key={a.id}>
+                <div>
+                  <h4>{a.title}</h4>
+                  <p>{a.desc}</p>
+                </div>
+                <Button type="secondary" variant="danger" size="md" onClick={() => setOpen(a.id)}>{a.verb}</Button>
+              </div>
+            ))}
+          </div>
+
+          {actions.map(a => (
+            <Dialog
+              key={a.id}
+              isOpen={open === a.id}
+              onClose={() => setOpen(null)}
+              title={`${a.title}?`}
+              description={a.desc + " Type the action verb to confirm."}
+              confirmButtonText={a.verb}
+              confirmButtonVariant="danger"
+              cancelButtonText="Cancel"
+              onConfirm={() => { setOpen(null); toast.warning(`${a.title} executed.`); }}
+              onCancel={() => setOpen(null)}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    // ----------- App -----------
+    function SettingsApp() {
+      const toast = useToast();
+      const [active, setActive] = useState("profile");
+      const [dirty, setDirty] = useState(false);
+      const [saving, setSaving] = useState(false);
+      const markDirty = () => setDirty(true);
+
+      const save = () => {
+        setSaving(true);
+        setTimeout(() => { setSaving(false); setDirty(false); toast.success("Settings saved."); }, 600);
+      };
+      const discard = () => { setDirty(false); toast.warning("Unsaved changes discarded."); };
+
+      const content = useMemo(() => {
+        switch (active) {
+          case "profile":  return <ProfileSection  markDirty={markDirty} />;
+          case "notifs":   return <NotifSection    markDirty={markDirty} />;
+          case "display":  return <DisplaySection  markDirty={markDirty} />;
+          case "trading":  return <TradingSection  markDirty={markDirty} />;
+          case "sources":  return <SourcesSection  markDirty={markDirty} />;
+          case "api":      return <ApiSection      markDirty={markDirty} />;
+          case "security": return <SecuritySection markDirty={markDirty} />;
+          case "danger":   return <DangerSection   markDirty={markDirty} />;
+          default:         return null;
+        }
+      }, [active]);
+
+      return (
+        <>
+          <NavBar
+            projectName="TradingDesk"
+            projectLogoIcon="ap-icon-logo-vault"
+            activeMenuItemHref="#settings"
+            menuItems={[
+              { label: "Dashboard", href: "#dashboard" },
+              { label: "Positions", href: "#positions" },
+              { label: "Trades",    href: "#trades" },
+              { label: "Reports",   href: "#reports" },
+              { label: "Settings",  href: "#settings" },
+            ]}
+            additionalItems={{
+              notifications: {
+                count: 0,
+                content: <div style={{padding:12, minWidth:220}}><strong style={{fontSize:13}}>No new notifications</strong></div>,
+              },
+              userProfile: {
+                initials: "JB",
+                content: (
+                  <div style={{padding:12, minWidth:220}}>
+                    <strong>Julian Benitez</strong>
+                    <div style={{fontSize:12, color:"#64748b"}}>jbenitez@alixpartners.com</div>
+                  </div>
+                ),
+              },
+            }}
+          />
+
+          <div className="page-wrap">
+            <div className="title-block">
+              <h1>Settings</h1>
+              <p className="sub">Manage your account, alerts, and integrations across the trading desk.</p>
+            </div>
+
+            <div className="settings-shell">
+              <SideNav active={active} onPick={setActive} />
+              <div>{content}</div>
+            </div>
+          </div>
+
+          <div className="save-bar">
+            <div className="dirty-pill">
+              {dirty
+                ? <><span style={{display:"inline-block", width:8, height:8, borderRadius:4, background:"#f59e0b"}} /> Unsaved changes</>
+                : <><span style={{display:"inline-block", width:8, height:8, borderRadius:4, background:"#10b981"}} /> All changes saved</>}
+            </div>
+            <Ghost variant="cancel" noIcon disabled={!dirty || saving} onClick={discard}>Discard</Ghost>
+            <Button type="primary" size="md" icon="ap-icon-check" loading={saving} disabled={!dirty} onClick={save}>
+              Save changes
+            </Button>
+          </div>
+        </>
+      );
+    }
+
+    function App() {
+      return (
+        <ToastProvider maxSnack={3} autoHideDuration={3500} anchorOrigin={{ vertical: "bottom", horizontal: "right" }}>
+          <SettingsApp />
+        </ToastProvider>
+      );
+    }
+
+    createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

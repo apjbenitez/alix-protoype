@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Architecture flows</title>
+  <script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
+  <script src="https://unpkg.com/cytoscape@3.30.4/dist/cytoscape.min.js"></script>
+  <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+  <style>
+    :root { color-scheme: light; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; background: #f6f7f9; color: #0f172a;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      display: grid; grid-template-rows: auto 1fr; height: 100vh;
+    }
+
+    header {
+      padding: 12px 20px; background: white; border-bottom: 1px solid #e2e8f0;
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    header h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+    header .meta { color: #64748b; font-size: 12px; display: flex; gap: 12px; }
+    header .controls { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+    header button {
+      appearance: none; background: white; border: 1px solid #e2e8f0; color: #0f172a;
+      padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    header button:hover { background: #f1f5f9; }
+    header select { padding: 6px 8px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 12px; background: white; }
+
+    main {
+      display: grid; grid-template-columns: minmax(0, 1fr) 360px; height: 100%; min-height: 0;
+    }
+    #graph { background: #f6f7f9; min-height: 0; height: 100%; }
+
+    aside {
+      background: white; border-left: 1px solid #e2e8f0;
+      display: grid; grid-template-rows: auto 1fr; min-height: 0; overflow: hidden;
+    }
+    .aside-head { padding: 14px 16px 10px; border-bottom: 1px solid #f1f5f9; }
+    .aside-head h2 { margin: 0 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: #475569; font-weight: 700; }
+    .aside-head p { margin: 0; font-size: 12px; color: #64748b; }
+
+    .aside-body { overflow: auto; padding: 8px 0 24px; }
+
+    .flow-list { list-style: none; margin: 0; padding: 0 8px; }
+    .flow-list li {
+      padding: 8px 10px; border-radius: 8px; cursor: pointer;
+      display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center;
+    }
+    .flow-list li:hover { background: #f1f5f9; }
+    .flow-list li.active { background: #eef2ff; }
+    .flow-list .flow-label { font-size: 13px; font-weight: 600; }
+    .flow-list .flow-trigger { font-size: 11px; color: #64748b; margin-top: 2px; grid-column: 1 / -1; }
+
+    .pill { font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 6px; border-radius: 999px; }
+    .pill.status-implemented { background: #dcfce7; color: #166534; }
+    .pill.status-designed    { background: #dbeafe; color: #1e40af; }
+    .pill.status-proposed    { background: #fee2e2; color: #991b1b; }
+
+    .detail { padding: 12px 16px; border-top: 1px solid #f1f5f9; }
+    .detail h3 { margin: 0 0 4px; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .detail .trigger { color: #64748b; font-size: 12px; margin: 0 0 12px; }
+    .detail ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+    .detail ol.steps li {
+      counter-increment: step;
+      display: grid; grid-template-columns: 22px 1fr; gap: 10px;
+      padding: 8px 0; border-top: 1px dashed #e2e8f0; cursor: pointer;
+    }
+    .detail ol.steps li:first-child { border-top: none; }
+    .detail ol.steps li:hover { background: #fafbff; }
+    .detail ol.steps li.active { background: #eef2ff; }
+    .detail ol.steps li::before {
+      content: counter(step);
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #0f172a; color: white; font-size: 11px; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .step-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; }
+    .step-line .ref { font-weight: 600; }
+    .step-line .arrow { color: #94a3b8; }
+    .step-line .via { font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; color: #475569; background: #f1f5f9; padding: 1px 6px; border-radius: 4px; }
+    .step-note { color: #64748b; font-size: 12px; margin-top: 2px; }
+
+    .empty-detail { padding: 16px; color: #64748b; font-size: 13px; text-align: center; }
+
+    .design-badge { position: fixed; bottom: 12px; left: 12px; font: 600 11px/1 system-ui; padding: 6px 10px; background: #111; color: #fff; border-radius: 999px; z-index: 50; }
+
+    /* Legend overlay on the graph */
+    .legend {
+      position: absolute; top: 12px; left: 12px;
+      background: white; border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 8px 10px; font-size: 11px; display: grid; gap: 4px;
+      box-shadow: 0 1px 2px rgba(15,23,42,.05);
+    }
+    .legend .lg-row { display: flex; align-items: center; gap: 6px; }
+    .legend .swatch { width: 10px; height: 10px; border-radius: 3px; }
+
+    .graph-shell { position: relative; height: 100%; }
+
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+      aside { border-left: none; border-top: 1px solid #e2e8f0; max-height: 50vh; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Architecture flows</h1>
+    <div class="meta">
+      <span id="meta-project"></span>
+      <span id="meta-updated"></span>
+    </div>
+    <div class="controls">
+      <label for="layout-dir" style="font-size:12px;color:#475569;">Layout</label>
+      <select id="layout-dir">
+        <option value="LR" selected>Left → Right</option>
+        <option value="TB">Top → Bottom</option>
+      </select>
+      <button id="reset-btn" title="Clear selection, show all flows">Reset</button>
+      <button id="fit-btn" title="Fit graph to viewport">Fit</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="graph-shell">
+      <div id="graph"></div>
+      <div class="legend">
+        <div class="lg-row"><span class="swatch" style="background:#6366f1"></span> page</div>
+        <div class="lg-row"><span class="swatch" style="background:#06b6d4"></span> prototype</div>
+        <div class="lg-row"><span class="swatch" style="background:#f59e0b"></span> api</div>
+        <div class="lg-row"><span class="swatch" style="background:#c026d3"></span> store / db</div>
+        <div class="lg-row"><span class="swatch" style="background:#64748b"></span> external</div>
+        <div class="lg-row"><span class="swatch" style="background:#22c55e"></span> component</div>
+      </div>
+    </div>
+
+    <aside>
+      <div class="aside-head">
+        <h2>Flows</h2>
+        <p>Click a flow to highlight its arrows.</p>
+      </div>
+      <div class="aside-body">
+        <ul class="flow-list" id="flow-list"></ul>
+        <div class="detail" id="detail">
+          <div class="empty-detail">Pick a flow above to see its steps and trace the arrows on the diagram.</div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <div class="design-badge">flows — diagram</div>
+
+  <script>
+    const TYPE_COLOR = {
+      page:      "#6366f1",
+      prototype: "#06b6d4",
+      api:       "#f59e0b",
+      store:     "#c026d3",
+      external:  "#64748b",
+      component: "#22c55e",
+    };
+    const TYPE_BG = {
+      page:      "#eef2ff",
+      prototype: "#ecfeff",
+      api:       "#fef9c3",
+      store:     "#fae8ff",
+      external:  "#f1f5f9",
+      component: "#dcfce7",
+    };
+
+    let cy, data;
+    let selectedFlow = null;
+
+    async function loadData() {
+      const res = await fetch("./flows.json", { cache: "no-store" });
+      if (!res.ok) throw new Error("flows.json HTTP " + res.status);
+      return res.json();
+    }
+
+    function buildElements(d) {
+      const els = [];
+      for (const n of d.nodes) {
+        els.push({
+          group: "nodes",
+          data: {
+            id: n.id,
+            label: n.label,
+            type: n.type,
+            status: n.status,
+            color: TYPE_COLOR[n.type] || "#64748b",
+            bg:    TYPE_BG[n.type]    || "#f1f5f9",
+          },
+        });
+      }
+      for (const f of d.flows) {
+        f.steps.forEach((s, i) => {
+          els.push({
+            group: "edges",
+            data: {
+              id: `${f.id}__${i}`,
+              source: s.from, target: s.to,
+              flowId: f.id, stepIndex: i,
+              via: s.via || "",
+              note: s.note || "",
+              label: s.via || "",
+            },
+          });
+        });
+      }
+      return els;
+    }
+
+    function styleSheet() {
+      return [
+        {
+          selector: "node",
+          style: {
+            "background-color": "data(bg)",
+            "border-width": 2,
+            "border-color": "data(color)",
+            "shape": "round-rectangle",
+            "padding": "8px",
+            "label": "data(label)",
+            "color": "#0f172a",
+            "font-size": 11,
+            "font-weight": 600,
+            "text-valign": "center",
+            "text-halign": "center",
+            "text-wrap": "wrap",
+            "text-max-width": 130,
+            "width": "label",
+            "height": "label",
+            "min-width": 120,
+            "min-height": 28,
+          },
+        },
+        {
+          selector: "node.status-implemented",
+          style: { "border-style": "solid" },
+        },
+        {
+          selector: "node.status-designed",
+          style: { "border-style": "dashed" },
+        },
+        {
+          selector: "node.status-proposed",
+          style: { "border-style": "dotted", "opacity": 0.92 },
+        },
+        {
+          selector: "edge",
+          style: {
+            "curve-style": "bezier",
+            "control-point-step-size": 40,
+            "width": 1.2,
+            "line-color": "#cbd5e1",
+            "target-arrow-shape": "triangle",
+            "target-arrow-color": "#cbd5e1",
+            "label": "data(label)",
+            "font-size": 9,
+            "color": "#64748b",
+            "text-background-color": "#ffffff",
+            "text-background-opacity": 1,
+            "text-background-padding": 2,
+            "text-rotation": "autorotate",
+            "opacity": 0.85,
+          },
+        },
+        {
+          selector: "edge.dim",
+          style: { "opacity": 0.08, "label": "" },
+        },
+        {
+          selector: "node.dim",
+          style: { "opacity": 0.25 },
+        },
+        {
+          selector: "edge.hot",
+          style: {
+            "line-color": "#0f172a",
+            "target-arrow-color": "#0f172a",
+            "width": 2.5,
+            "z-index": 99,
+            "color": "#0f172a",
+            "font-weight": 700,
+          },
+        },
+        {
+          selector: "edge.step-active",
+          style: {
+            "line-color": "#dc2626",
+            "target-arrow-color": "#dc2626",
+            "width": 3.5,
+            "z-index": 100,
+            "color": "#dc2626",
+          },
+        },
+        {
+          selector: "node.hot",
+          style: {
+            "border-color": "#0f172a",
+            "border-width": 3,
+            "z-index": 100,
+            "opacity": 1,
+          },
+        },
+        {
+          selector: ":selected",
+          style: { "overlay-opacity": 0 },
+        },
+      ];
+    }
+
+    function applySelection() {
+      cy.batch(() => {
+        cy.elements().removeClass("hot dim step-active");
+        if (!selectedFlow) return;
+        const edges = cy.edges(`[flowId = "${selectedFlow}"]`);
+        const nodes = edges.connectedNodes();
+        cy.elements().not(edges).not(nodes).addClass("dim");
+        edges.addClass("hot");
+        nodes.addClass("hot");
+      });
+    }
+
+    function highlightStep(flowId, stepIndex) {
+      cy.batch(() => {
+        cy.edges(".step-active").removeClass("step-active");
+        cy.edges(`[flowId = "${flowId}"][stepIndex = ${stepIndex}]`).addClass("step-active");
+      });
+    }
+
+    function nodeLabelMap() {
+      const m = {};
+      for (const n of data.nodes) m[n.id] = n.label;
+      return m;
+    }
+
+    function renderDetail() {
+      const elDetail = document.getElementById("detail");
+      elDetail.innerHTML = "";
+      if (!selectedFlow) {
+        elDetail.innerHTML = `<div class="empty-detail">Pick a flow above to see its steps and trace the arrows on the diagram.</div>`;
+        return;
+      }
+      const f = data.flows.find(x => x.id === selectedFlow);
+      if (!f) return;
+      const names = nodeLabelMap();
+      const h3 = document.createElement("h3");
+      h3.textContent = f.label;
+      const pill = document.createElement("span");
+      pill.className = "pill status-" + f.status;
+      pill.textContent = f.status;
+      h3.appendChild(pill);
+      elDetail.appendChild(h3);
+
+      if (f.trigger) {
+        const t = document.createElement("p");
+        t.className = "trigger";
+        t.textContent = "Trigger: " + f.trigger;
+        elDetail.appendChild(t);
+      }
+
+      const ol = document.createElement("ol");
+      ol.className = "steps";
+      f.steps.forEach((s, i) => {
+        const li = document.createElement("li");
+        li.dataset.step = i;
+        const line = document.createElement("div");
+        line.className = "step-line";
+        line.innerHTML = `<span class="ref">${names[s.from] || s.from}</span><span class="arrow">→</span><span class="ref">${names[s.to] || s.to}</span>${s.via ? `<span class="via">${s.via}</span>` : ""}`;
+        li.appendChild(line);
+        if (s.note) {
+          const n = document.createElement("div");
+          n.className = "step-note";
+          n.textContent = s.note;
+          li.appendChild(n);
+        }
+        li.addEventListener("click", () => {
+          [...ol.querySelectorAll("li")].forEach(x => x.classList.remove("active"));
+          li.classList.add("active");
+          highlightStep(f.id, i);
+          // pan to the step's edge midpoint
+          const edge = cy.edges(`[flowId = "${f.id}"][stepIndex = ${i}]`);
+          if (edge.nonempty()) {
+            const bb = edge.connectedNodes().boundingBox();
+            cy.animate({ center: { eles: edge.connectedNodes() }, fit: { eles: edge.connectedNodes(), padding: 60 } }, { duration: 350 });
+          }
+        });
+        ol.appendChild(li);
+      });
+      elDetail.appendChild(ol);
+    }
+
+    function renderFlowList() {
+      const ul = document.getElementById("flow-list");
+      ul.innerHTML = "";
+      for (const f of data.flows) {
+        const li = document.createElement("li");
+        li.dataset.flowId = f.id;
+        if (selectedFlow === f.id) li.classList.add("active");
+        li.innerHTML = `
+          <span class="flow-label">${f.label}</span>
+          <span class="pill status-${f.status}">${f.status}</span>
+          <span class="flow-trigger">${f.trigger || ""}</span>
+        `;
+        li.addEventListener("click", () => {
+          selectFlow(selectedFlow === f.id ? null : f.id);
+        });
+        ul.appendChild(li);
+      }
+    }
+
+    function buildGraph() {
+      cy = cytoscape({
+        container: document.getElementById("graph"),
+        elements: buildElements(data),
+        style: styleSheet(),
+        layout: layoutOpts("LR"),
+        wheelSensitivity: 0.2,
+        minZoom: 0.3,
+        maxZoom: 2.5,
+      });
+      // apply status classes
+      cy.nodes().forEach(n => n.addClass("status-" + n.data("status")));
+
+      cy.on("tap", "node", (e) => {
+        const id = e.target.id();
+        // future: open node details. for now: just briefly flash.
+      });
+      cy.on("mouseover", "edge", (e) => {
+        e.target.style({ "width": 3 });
+      });
+      cy.on("mouseout", "edge", (e) => {
+        e.target.removeStyle("width");
+      });
+    }
+
+    function layoutOpts(dir) {
+      return {
+        name: "dagre",
+        rankDir: dir,
+        nodeSep: 24,
+        edgeSep: 12,
+        rankSep: 90,
+        padding: 30,
+        animate: false,
+      };
+    }
+
+    function relayout(dir) {
+      cy.layout(layoutOpts(dir)).run();
+    }
+
+    document.getElementById("layout-dir").addEventListener("change", (e) => relayout(e.target.value));
+    document.getElementById("fit-btn").addEventListener("click", () => cy.animate({ fit: { padding: 40 } }, { duration: 350 }));
+    document.getElementById("reset-btn").addEventListener("click", () => {
+      selectFlow(null);
+      cy.animate({ fit: { padding: 40 } }, { duration: 350 });
+    });
+
+    function selectFlow(id, { fit = true } = {}) {
+      selectedFlow = id || null;
+      [...document.querySelectorAll("#flow-list li")].forEach(x => x.classList.toggle("active", x.dataset.flowId === selectedFlow));
+      applySelection();
+      renderDetail();
+      if (selectedFlow && fit) {
+        const edges = cy.edges(`[flowId = "${selectedFlow}"]`);
+        const nodes = edges.connectedNodes();
+        if (nodes.nonempty()) cy.animate({ fit: { eles: nodes, padding: 50 } }, { duration: 350 });
+      }
+      const expected = selectedFlow ? "#flow-" + selectedFlow : "";
+      if (location.hash !== expected) history.replaceState(null, "", expected || location.pathname);
+    }
+
+    window.addEventListener("hashchange", () => {
+      const m = location.hash.match(/^#flow-(.+)$/);
+      selectFlow(m ? m[1] : null);
+    });
+
+    async function main() {
+      try {
+        data = await loadData();
+        document.getElementById("meta-project").textContent = "project: " + (data.project || "—");
+        document.getElementById("meta-updated").textContent = "updated: " + (data.updatedAt || "—");
+        buildGraph();
+        renderFlowList();
+        renderDetail();
+        const m = location.hash.match(/^#flow-(.+)$/);
+        if (m && data.flows.some(f => f.id === m[1])) selectFlow(m[1], { fit: false });
+      } catch (e) {
+        document.getElementById("graph").innerHTML =
+          `<div style="padding:24px;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;margin:24px;border-radius:10px;">
+             Could not load flows.json — ${e.message}. Serve this folder via <code>npx serve .designs</code>.
+           </div>`;
+      }
+    }
+    main();
+  </script>
+</body>
+</html>
