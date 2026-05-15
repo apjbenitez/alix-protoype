@@ -339,6 +339,38 @@
     }
     .sector-row__pct { text-align: right; font-variant-numeric: tabular-nums; color: var(--ap-text); font-weight: 600; }
 
+    /* ---------- stress scenarios (Risk tab) ---------- */
+    .stress-list { display: flex; flex-direction: column; gap: var(--ap-space-2); }
+    .stress-row {
+      display: grid;
+      grid-template-columns: minmax(140px, 1.3fr) minmax(120px, 1.5fr) 110px 80px 90px;
+      align-items: center;
+      gap: var(--ap-space-3);
+      padding: var(--ap-space-2) 0;
+      border-bottom: 1px solid var(--ap-border-soft);
+    }
+    .stress-row:last-child { border-bottom: none; }
+    .stress-row__name { font-weight: 600; color: var(--ap-text); font-size: 13px; min-width: 0; }
+    .stress-row__sub  { font-weight: 400; color: var(--ap-text-muted); font-size: 11px; margin-top: 2px; }
+    .stress-bar {
+      position: relative; height: 8px; width: 100%;
+      background: var(--ap-bg-muted); border-radius: 999px; overflow: hidden;
+    }
+    .stress-bar__fill {
+      position: absolute; top: 0; left: 0; height: 100%;
+      border-radius: 999px;
+    }
+    .stress-bar__fill--info    { background: var(--ap-text-soft); }
+    .stress-bar__fill--warning { background: var(--ap-warning); }
+    .stress-bar__fill--error   { background: var(--ap-error); }
+    @media (max-width: 700px) {
+      .stress-row {
+        grid-template-columns: 1fr 1fr;
+        gap: var(--ap-space-2);
+      }
+      .stress-row > :nth-child(2) { grid-column: 1 / -1; order: 5; }
+    }
+
     /* ---------- compliance status chips ---------- */
     .cmp-tag {
       display: inline-flex; align-items: center; justify-content: center;
@@ -440,14 +472,15 @@
     }
     .ai-sidebar__title strong { display: block; font-size: 14px; line-height: 1.2; }
     .ai-sidebar__sub { font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 2px; }
-    .ai-sidebar__close {
-      appearance: none; border: none; cursor: pointer;
-      width: 32px; height: 32px; border-radius: var(--ap-radius);
-      background: transparent; color: #fff;
-      font-size: 18px; line-height: 1;
-      display: inline-flex; align-items: center; justify-content: center;
+    /* Ghost close button on dark header — override the default DS button colors */
+    .ai-sidebar__close-wrap { display: inline-flex; }
+    .ai-sidebar__close-wrap [class*="Button-module__btn"],
+    .ai-sidebar__close-wrap button {
+      color: #fff !important;
+      background: transparent !important;
     }
-    .ai-sidebar__close:hover { background: rgba(255,255,255,0.10); }
+    .ai-sidebar__close-wrap button:hover { background: rgba(255,255,255,0.10) !important; }
+    .ai-sidebar__close-wrap [class*="btn-icon"] { color: #fff !important; }
 
     .ai-sidebar__messages {
       flex: 1; overflow-y: auto;
@@ -496,15 +529,9 @@
       display: flex; flex-wrap: wrap; gap: 6px;
       margin: var(--ap-space-2) 0 0;
     }
-    .ai-suggestion {
-      appearance: none; cursor: pointer;
-      background: var(--ap-bg-surface); border: 1px solid var(--ap-border);
-      color: var(--ap-primary-2);
-      font: 500 12px/1 var(--ap-font);
-      padding: 6px 10px;
-      border-radius: 999px;
-    }
-    .ai-suggestion:hover { background: var(--ap-bg-muted); border-color: var(--ap-primary-2); }
+    /* Make DS Tag clickable as a suggestion chip */
+    .ai-suggestion-wrap { cursor: pointer; display: inline-flex; }
+    .ai-suggestion-wrap:hover [class*="tag"] { background: var(--ap-bg-muted); }
 
     .ai-sidebar__inputWrap {
       padding: var(--ap-space-3);
@@ -514,39 +541,10 @@
     .ai-sidebar__input {
       display: flex; gap: var(--ap-space-2); align-items: flex-end;
     }
-    .ai-sidebar__input textarea {
-      flex: 1;
-      resize: none;
-      padding: 8px 10px;
-      font: 13px/1.4 var(--ap-font);
-      color: var(--ap-text);
-      border: 1px solid var(--ap-border);
-      border-radius: var(--ap-radius);
-      background: var(--ap-bg-surface);
-      min-height: 40px;
-      max-height: 120px;
-    }
-    .ai-sidebar__input textarea:focus {
-      outline: 2px solid var(--ap-primary-2); outline-offset: -1px;
-      border-color: var(--ap-primary-2);
-    }
-    .ai-send {
-      appearance: none; border: none; cursor: pointer;
-      background: var(--ap-primary); color: #fff;
-      border-radius: var(--ap-radius);
-      width: 40px; height: 40px;
-      display: inline-flex; align-items: center; justify-content: center;
-      flex: none;
-    }
-    .ai-send:hover:not(:disabled) { background: var(--ap-primary-2); }
-    .ai-send:disabled { background: var(--ap-border); cursor: not-allowed; }
-    .ai-send::before {
-      content: ""; width: 0; height: 0;
-      border-top: 6px solid transparent;
-      border-bottom: 6px solid transparent;
-      border-left: 9px solid currentColor;
-      margin-left: 2px;
-    }
+    .ai-sidebar__input-field { flex: 1; min-width: 0; }
+    /* Suppress the DS Textarea's empty label/error rows in this dense chat layout */
+    .ai-sidebar__input-field [class*="Textarea-module__label"]:empty { display: none; }
+    .ai-sidebar__input-field [class*="Textarea-module__errorMessage"]:empty { display: none; }
     .ai-sidebar__hint {
       font-size: 11px; color: var(--ap-text-muted);
       margin-top: 6px;
@@ -732,6 +730,39 @@
       { id: "C-208", rule: "Liquidity vs 5-day ADV",        threshold: "Position ≤ 10% ADV", current: "All positions OK",  status: "pass",    category: "Liquidity",     lastCheck: "15:30 ET" },
       { id: "C-209", rule: "Counterparty limits",           threshold: "≤ $5M per CP",      current: "$3.2M max",          status: "warning", category: "Counterparty",  lastCheck: "15:30 ET" },
       { id: "C-210", rule: "Risk engine connectivity",      threshold: "Active",            current: "503 — stale 18m",    status: "fail",    category: "Operational",   lastCheck: "15:24 ET" },
+    ];
+
+    // ----------- risk data (Risk tab) -----------
+    const VAR_SUMMARY = {
+      var1d: 182000,        // 1-day 95% VaR (matches compliance row C-207)
+      var5d: 408000,        // 5-day VaR (≈ 1d × √5)
+      stressMaxLoss: 1200000, // worst stress scenario
+      beta: 0.62,           // rolling 60-day beta to SPX
+      navUsed: 39940000,    // NAV anchor for % calcs
+    };
+
+    const STRESS_SCENARIOS = [
+      { id: "S-01", name: "SPX −10%",       category: "Equity beta",  impact: -1200000, pctNav: -3.00, severity: "error"   },
+      { id: "S-02", name: "Tech −8%",       category: "Sector",       impact:  -880000, pctNav: -2.20, severity: "error"   },
+      { id: "S-03", name: "Vol +5 pts",     category: "Volatility",   impact:  -340000, pctNav: -0.85, severity: "warning" },
+      { id: "S-04", name: "Rates +50 bp",   category: "Rates",        impact:  -210000, pctNav: -0.53, severity: "warning" },
+      { id: "S-05", name: "Energy −15%",    category: "Commodity",    impact:  -180000, pctNav: -0.45, severity: "info"    },
+      { id: "S-06", name: "USD +5%",        category: "FX",           impact:   -95000, pctNav: -0.24, severity: "info"    },
+    ];
+
+    const POSITION_RISK = [
+      { sym: "NVDA",  sector: "Tech",       mv:  1338540, marginalVar:  58200, pctOfTotal: 32.0, beta: 1.62 },
+      { sym: "TSLA",  sector: "Consumer",   mv:   169385, marginalVar:  14600, pctOfTotal:  8.0, beta: 1.84 },
+      { sym: "META",  sector: "Tech",       mv:  -146430, marginalVar:  12100, pctOfTotal:  6.6, beta: 1.21 },
+      { sym: "AMD",   sector: "Tech",       mv:    76692, marginalVar:  10400, pctOfTotal:  5.7, beta: 1.74 },
+      { sym: "AAPL",  sector: "Tech",       mv:   152960, marginalVar:   9800, pctOfTotal:  5.4, beta: 1.18 },
+      { sym: "GOOGL", sector: "Tech",       mv:    82700, marginalVar:   7200, pctOfTotal:  4.0, beta: 1.10 },
+      { sym: "MSFT",  sector: "Tech",       mv:   259620, marginalVar:   6900, pctOfTotal:  3.8, beta: 0.92 },
+      { sym: "SPY",   sector: "Index",      mv:  -212120, marginalVar:   5400, pctOfTotal:  3.0, beta: 1.00 },
+      { sym: "JPM",   sector: "Financials", mv:   -98700, marginalVar:   4200, pctOfTotal:  2.3, beta: 1.15 },
+      { sym: "AMZN",  sector: "Consumer",   mv:    78015, marginalVar:   3800, pctOfTotal:  2.1, beta: 1.32 },
+      { sym: "XOM",   sector: "Energy",     mv:    68880, marginalVar:   3400, pctOfTotal:  1.9, beta: 0.74 },
+      { sym: "LLY",   sector: "Healthcare", mv:   107912, marginalVar:   3100, pctOfTotal:  1.7, beta: 0.55 },
     ];
 
     const sectorColor = (s) =>
@@ -1383,6 +1414,180 @@
       );
     }
 
+    // ----------- Risk tab -----------
+    function RiskSummary() {
+      const pctOfNav = (n) => ((Math.abs(n) / VAR_SUMMARY.navUsed) * 100).toFixed(2);
+      return (
+        <div className="summary-strip">
+          <div className="summary-card">
+            <div className="summary-label">1-day VaR (95%)</div>
+            <div className="summary-value">{fmtUSD(VAR_SUMMARY.var1d)}</div>
+            <div className="summary-sub">{pctOfNav(VAR_SUMMARY.var1d)}% NAV · cap $250k</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">5-day VaR (95%)</div>
+            <div className="summary-value">{fmtUSD(VAR_SUMMARY.var5d)}</div>
+            <div className="summary-sub">{pctOfNav(VAR_SUMMARY.var5d)}% NAV · headline risk</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Stress max loss</div>
+            <div className="summary-value pl-neg">−{fmtUSD(VAR_SUMMARY.stressMaxLoss)}</div>
+            <div className="summary-sub">Worst scenario · {pctOfNav(VAR_SUMMARY.stressMaxLoss)}% NAV</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Beta to SPX</div>
+            <div className="summary-value">{VAR_SUMMARY.beta.toFixed(2)}</div>
+            <div className="summary-sub">Rolling 60-day</div>
+          </div>
+        </div>
+      );
+    }
+
+    function StressScenarioRow({ s, maxAbs }) {
+      const tagType  = s.severity === "error" ? "error" : s.severity === "warning" ? "warning" : "basic";
+      const tagLabel = s.severity === "error" ? "Severe" : s.severity === "warning" ? "Watch" : "Mild";
+      return (
+        <div className="stress-row">
+          <div>
+            <div className="stress-row__name">{s.name}</div>
+            <div className="stress-row__sub">{s.category} · {s.id}</div>
+          </div>
+          <div className="stress-bar" title={`${s.name} · ${fmtPnL(s.impact)}`}>
+            <div className={`stress-bar__fill stress-bar__fill--${s.severity}`}
+                 style={{width: `${(Math.abs(s.impact) / maxAbs) * 100}%`}} />
+          </div>
+          <div className={`alloc-row__num ${s.impact < 0 ? "pl-neg" : "pl-pos"}`}>{fmtPnL(s.impact)}</div>
+          <div className="alloc-row__num">{s.pctNav.toFixed(2)}%</div>
+          <div>
+            <Tag type={tagType} structure="solid" size="sm" label={tagLabel} noIcon
+                 color={s.severity === "info" ? "gray" : undefined} />
+          </div>
+        </div>
+      );
+    }
+
+    function StressScenariosPanel() {
+      const toast = useToast();
+      const maxAbs = Math.max(...STRESS_SCENARIOS.map(s => Math.abs(s.impact)));
+      const severeCount = STRESS_SCENARIOS.filter(s => s.severity === "error").length;
+      return (
+        <div className="panel">
+          <div className="panel-head">
+            <h2><Icon icon="ap-icon-alert" /> Stress scenarios</h2>
+            <div className="table-controls">
+              <span style={{fontSize: 12, color: "var(--ap-text-muted)"}}>
+                {STRESS_SCENARIOS.length} scenarios · {severeCount} severe
+              </span>
+              <Ghost variant="default" icon="ap-icon-add" onClick={() => toast.success("Add custom scenario (stub)")}>
+                Add scenario
+              </Ghost>
+            </div>
+          </div>
+          <div className="stress-list">
+            {STRESS_SCENARIOS.map(s => <StressScenarioRow key={s.id} s={s} maxAbs={maxAbs} />)}
+          </div>
+        </div>
+      );
+    }
+
+    function PositionRiskPanel() {
+      const toast = useToast();
+
+      const columnDefs = useMemo(() => [
+        {
+          field: "sym", headerName: "Symbol", pinned: "left", width: 100,
+          cellStyle: { fontWeight: 700, fontVariantNumeric: "tabular-nums", letterSpacing: ".02em" },
+        },
+        {
+          field: "sector", headerName: "Sector", width: 130,
+          cellRenderer: (p) => {
+            const s = document.createElement("span");
+            s.className = "sector-chip";
+            s.textContent = p.value;
+            s.style.background = SECTOR_BG[p.value] || "#ececec";
+            s.style.color      = SECTOR_FG[p.value] || "#4a4a4a";
+            return s;
+          },
+        },
+        { field: "mv", headerName: "Mkt value", type: "rightAligned", width: 130,
+          valueFormatter: (p) => fmtUSD(p.value) },
+        {
+          field: "marginalVar", headerName: "Marginal VaR", type: "rightAligned", width: 140,
+          sort: "desc",
+          valueFormatter: (p) => fmtUSD(p.value),
+          cellStyle: { fontWeight: 600 },
+        },
+        {
+          field: "pctOfTotal", headerName: "% of VaR", type: "rightAligned", width: 110,
+          valueFormatter: (p) => p.value.toFixed(1) + "%",
+          cellRenderer: (p) => {
+            const wrap = document.createElement("div");
+            wrap.style.cssText = "display:flex;flex-direction:column;align-items:flex-end;line-height:1.2;gap:2px";
+            const top = document.createElement("span");
+            top.style.cssText = "font-variant-numeric: tabular-nums; font-weight: 600";
+            top.textContent = p.value.toFixed(1) + "%";
+            const bar = document.createElement("div");
+            bar.style.cssText = "width:60px;height:4px;background:#f5f5f5;border-radius:999px;overflow:hidden";
+            const fill = document.createElement("div");
+            fill.style.cssText = `width:${Math.min(p.value * 2.5, 100)}%;height:100%;background:${p.value >= 20 ? "#cb282e" : p.value >= 10 ? "#ce7309" : "#878787"};border-radius:999px`;
+            bar.appendChild(fill);
+            wrap.append(top, bar);
+            return wrap;
+          },
+        },
+        { field: "beta", headerName: "Beta", type: "rightAligned", width: 90,
+          valueFormatter: (p) => p.value.toFixed(2),
+          cellStyle: { fontVariantNumeric: "tabular-nums" } },
+        {
+          headerName: "", flex: 1, minWidth: 90, sortable: false, filter: false, resizable: false, suppressMovable: true,
+          cellRenderer: (p) => {
+            const btn = document.createElement("button");
+            btn.className = "view-link";
+            btn.textContent = "Detail";
+            btn.style.float = "right";
+            btn.addEventListener("click", () => toast.success(`Risk detail · ${p.data.sym}`));
+            return btn;
+          },
+        },
+      ], [toast]);
+
+      return (
+        <div className="panel">
+          <div className="panel-head">
+            <h2><Icon icon="ap-icon-bar" /> Position risk contribution</h2>
+            <span style={{fontSize: 12, color: "var(--ap-text-muted)"}}>Top {POSITION_RISK.length} by marginal VaR</span>
+          </div>
+          <AgGrid
+            rowData={POSITION_RISK}
+            columnDefs={columnDefs}
+            height={Math.min(POSITION_RISK.length, 10) * 40 + 80}
+            rowHeight={40}
+            headerHeight={36}
+            gridOptions={{ suppressCellFocus: true }}
+          />
+        </div>
+      );
+    }
+
+    function RiskView() {
+      const severeCount = STRESS_SCENARIOS.filter(s => s.severity === "error").length;
+      return (
+        <>
+          <RiskSummary />
+          {severeCount > 0 && (
+            <Banner
+              type="warning"
+              size="md"
+              isFullWidth
+              content={`${severeCount} stress scenarios cross the −2% NAV severity threshold. Review hedges before the next session.`}
+            />
+          )}
+          <StressScenariosPanel />
+          <PositionRiskPanel />
+        </>
+      );
+    }
+
     function LoadingTab() {
       return (
         <div className="panel">
@@ -1622,10 +1827,11 @@
               <Tab label="Positions"   numberCount={POSITIONS_FULL.length} active={tab === "positions"}   onClick={() => setTab("positions")} />
               <Tab label="Trades"      numberCount={TRADES.length}         active={tab === "trades"}      onClick={() => setTab("trades")} />
               <Tab label="Allocations" numberCount={SLEEVES.length} active={tab === "allocations"} onClick={() => setTab("allocations")} />
+              <Tab label="Risk"        numberCount={STRESS_SCENARIOS.filter(s => s.severity === "error").length} active={tab === "risk"} onClick={() => setTab("risk")} />
               <Tab label="Compliance"  hasError numberCount={COMPLIANCE_RULES.filter(r => r.status === "fail").length} active={tab === "compliance"} onClick={() => setTab("compliance")} />
             </TabNavigation>
 
-            {(tab === "overview" || tab === "positions" || tab === "trades") && (
+            {(tab === "overview" || tab === "positions" || tab === "trades" || tab === "risk") && (
               <div className="filter-row">
                 <Search
                   value={search}
@@ -1666,6 +1872,7 @@
                 {tab === "positions"   && <PositionsView />}
                 {tab === "trades"      && <TradesBlotter />}
                 {tab === "allocations" && <AllocationsView />}
+                {tab === "risk"        && <RiskView />}
                 {tab === "compliance"  && <ComplianceView />}
               </div>
               <SidebarPanel />
@@ -1730,17 +1937,18 @@
       const [input, setInput] = useState("");
       const [pending, setPending] = useState(false);
       const listRef = useRef(null);
-      const inputRef = useRef(null);
 
       useEffect(() => {
         if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
       }, [messages, pending]);
 
       useEffect(() => {
-        if (open && inputRef.current) {
-          const t = setTimeout(() => inputRef.current && inputRef.current.focus(), 220);
-          return () => clearTimeout(t);
-        }
+        if (!open) return;
+        const t = setTimeout(() => {
+          const ta = document.querySelector(".ai-sidebar__input-field textarea");
+          if (ta) ta.focus();
+        }, 220);
+        return () => clearTimeout(t);
       }, [open]);
 
       const sendText = (raw) => {
@@ -1775,7 +1983,9 @@
                   <div className="ai-sidebar__sub">Mocked LLM · prototype only</div>
                 </div>
               </div>
-              <button className="ai-sidebar__close" onClick={onClose} aria-label="Close AI assistant">×</button>
+              <span className="ai-sidebar__close-wrap" onClick={onClose}>
+                <Ghost variant="default" icon="ap-icon-close" noIcon={false} aria-label="Close AI assistant" />
+              </span>
             </div>
 
             <div className="ai-sidebar__messages" ref={listRef}>
@@ -1794,7 +2004,9 @@
               {messages.length <= 1 && !pending && (
                 <div className="ai-suggestions">
                   {SUGGESTED_PROMPTS.map((p) => (
-                    <button key={p} className="ai-suggestion" onClick={() => sendText(p)}>{p}</button>
+                    <span key={p} className="ai-suggestion-wrap" onClick={() => sendText(p)}>
+                      <Tag type="basic" structure="border" color="gray" size="sm" label={p} noIcon />
+                    </span>
                   ))}
                 </div>
               )}
@@ -1802,16 +2014,28 @@
 
             <div className="ai-sidebar__inputWrap">
               <div className="ai-sidebar__input">
-                <textarea
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={onKey}
-                  placeholder="Ask about positions, P&L, NVDA, compliance…"
-                  rows={2}
-                  disabled={pending}
+                <div className="ai-sidebar__input-field">
+                  <Textarea
+                    label=""
+                    value={input}
+                    onChange={setInput}
+                    placeholder="Ask about positions, P&L, NVDA, compliance…"
+                    rows={2}
+                    fullWidth
+                    resize="none"
+                    disabled={pending}
+                    onKeyDown={onKey}
+                  />
+                </div>
+                <Button
+                  type="primary"
+                  size="md"
+                  icon="ap-icon-right"
+                  loading={pending}
+                  disabled={!input.trim() || pending}
+                  onClick={() => sendText(input)}
+                  aria-label="Send"
                 />
-                <button className="ai-send" onClick={() => sendText(input)} disabled={!input.trim() || pending} aria-label="Send" />
               </div>
               <div className="ai-sidebar__hint">Enter to send · Shift+Enter for a new line</div>
             </div>

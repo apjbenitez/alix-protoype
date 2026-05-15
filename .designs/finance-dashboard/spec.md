@@ -59,6 +59,7 @@ The dashboard does not yet exist in code. The only relevant existing artifact is
       <Tab label="Positions" numberCount={24} />
       <Tab label="Trades" numberCount={142} />
       <Tab label="Allocations" />
+      <Tab label="Risk" numberCount={2} />
       <Tab label="Compliance" hasError numberCount={2} />
     </TabNavigation>
 
@@ -84,6 +85,11 @@ The dashboard does not yet exist in code. The only relevant existing artifact is
           <AllocationsSummary /> — 4 mini cards: NAV, sleeve count, avg drift, largest overweight
           Strategy sleeves panel — rows with name+NAV, target-vs-current bar (target marker), drift, P&L, status tag
           Sector exposure panel — horizontal bars sorted desc with percentage labels
+        <RiskView>         (Risk)
+          <RiskSummary /> — 4 mini cards: 1-day VaR, 5-day VaR, Stress max loss, Beta to SPX
+          <Banner type="warning" /> — surfaces when any scenario crosses the −2% NAV threshold
+          Stress scenarios panel — rows with name+category, severity-colored impact bar, P&L, %NAV, severity Tag
+          Position risk contribution AG Grid — Symbol, Sector chip, Mkt value, Marginal VaR (sort desc), % of VaR with mini bar, Beta, Detail link
         <ComplianceView>   (Compliance)
           <ComplianceSummary /> — 4 mini cards: active checks, passing, warnings, failures
           <Banner type="error" /> — surfaces when any rule status === "fail" (list of failing IDs)
@@ -125,6 +131,7 @@ Every data-bearing component must define all four states. The prototype shows th
 | Trades blotter (`Trades` tab) | `<Spinner size="md" color="dark" />` + "Loading trade blotter…" *(still rendered by `LoadingTab` for the loading-state demo, not wired to a tab)* | `<Illustration empty/>` + "No fills match this filter" + reset Button *(shown in prototype when Side filter clears all rows)* | Banner + retry | AG Grid with side chip / status dot / fees / account / trader, summary strip on top |
 | Positions view (`Positions` tab) | Skeleton rows ×8 + skeleton summary | "No open positions for this account" + `Button` "New trade" | Inline `Banner type="error"` above the grid with retry | Summary strip (long/short, gross, P&L, top concentration) + AG Grid over POSITIONS_FULL with optional row grouping by sector |
 | Allocations (`Allocations` tab) | Skeleton sleeve rows + skeleton sector bars | `<Illustration level=2 category="empty" name="search" />` + "Configure allocations" CTA (use `EmptyTab` as the reference state) | `Banner type="error"` above the sleeve panel with retry | Summary strip + sleeve rows (target/current bar, drift, P&L, status tag) + sector exposure panel |
+| Risk (`Risk` tab) | Skeleton summary + skeleton scenario rows | "All scenarios within tolerance" + green Tag | `Banner type="error"` above stress panel with retry | Summary strip + warning Banner (when any severe) + stress scenarios (impact bar + severity Tag) + position-risk AG Grid sorted by marginal VaR |
 | Compliance (`Compliance` tab) | Spinner | "All checks passed today" + green Tag | `Banner type="error"` + Retry button (use `ErrorTab` as the reference state) | Summary strip + failing-rules Banner + AG Grid of rules with status chips |
 | Sidebar Watchlist | Skeleton chips | "Add symbols to track" placeholder inside TagsFields | Inline error message on TagsFields | Chips of selected symbols |
 | Day notes / Textarea | n/a (input) | Placeholder text | `errorMessage` prop on Textarea | Free text |
