@@ -1,97 +1,112 @@
 ---
 name: design-prototype
 description: >
-  PM → UX → static HTML mockup workflow for Next.js + React projects using
-  @alixpartners/ui-components. Takes a feature request, scopes it against the
-  existing code, designs the UI with the real component library, and produces
-  static HTML prototypes (mounted via in-browser React + JSX) plus an MD spec
-  in .designs/. Triggered by phrases like "design the UI for X", "create a
-  mockup of X", "prototype this page", "how should X look", "redesign X".
+  Three-agent prototype workflow (PM → UX → frontend-dev) for Next.js + React
+  projects using @alixpartners/ui-components. Always delegates the scoping,
+  design, and implementation of static HTML prototypes to the
+  `feature-planner`, `ux-designer`, and `frontend-dev` agents — in that order.
+  Produces files under `.designs/<feature-name>/` only. Never touches `app/`
+  or any other production code. Triggered by phrases like "design the UI for
+  X", "create a mockup of X", "prototype this page", "how should X look",
+  "redesign X".
 ---
 
 ## What It Does
 
-Three-stage pipeline:
+This skill is an **orchestrator**, not a one-shot designer. Every invocation runs the same three-agent pipeline:
 
 ```
-Feature request → PM clarifies scope → UX reads project → static HTML prototype + MD spec
+Feature request
+   → feature-planner   (PM — scope the prototype)
+   → ux-designer       (UX — design the prototype)
+   → frontend-dev      (implementation — write .designs/<feature>/)
 ```
 
-Produces two files per feature in `.designs/<feature-name>/`:
-- `index.html` — static HTML that mounts a React tree using `@alixpartners/ui-components`. No bundler, no dev server. Served via `npx serve .designs`.
-- `spec.md` — developer-ready spec with component tree, states, library mappings.
+Each agent runs in its own sub-task. The top-level conversation only orchestrates: it briefs each agent, surfaces the artifact, and waits for user sign-off before advancing to the next stage.
 
-### Folder structure
+### Hard constraints
+
+- **Prototype-only.** This flow exclusively writes to `.designs/<feature-name>/`. It must never create, edit, or delete files under `app/`, `pages/`, `node_modules/`, the project root, or anywhere else outside `.designs/`.
+- **Three-agent chain is mandatory.** Do not skip stages. Do not collapse two stages into one. If the user wants to short-circuit (e.g. "just implement it, skip the planner"), confirm with them once and record the deviation in the spec — but the default is always all three.
+- **Each stage produces a named artifact.** Stage 1 → plan. Stage 2 → UI spec. Stage 3 → `index.html` + final `spec.md`. The next stage cannot begin until the prior artifact exists.
+- **Sign-off between stages.** Surface the artifact to the user and pause. Only advance when the user confirms (or after explicit "keep going" instruction at the start).
+
+### Output folder
 
 ```
 .designs/
-├── vendor/                ← pre-bundled, shared by every prototype
+├── index.html             ← prototype router/index (card grid linking every <feature-name>/)
+├── vendor/                ← shared, bundled once per repo
 │   ├── entry.tsx
 │   ├── bundle.sh
-│   ├── alix-ui.js         ← produced by bundle.sh
-│   └── alix-ui.css        ← produced by bundle.sh (esbuild emits CSS next to the JS)
-├── tokens.css             ← optional, only if the project needs overrides
+│   ├── alix-ui.js
+│   └── alix-ui.css
+├── tokens.css             ← optional
 ├── <feature-name>/
-│   ├── index.html
-│   └── spec.md
+│   ├── plan.md            ← Stage 1 output (feature-planner)
+│   ├── spec.md            ← Stage 2 output (ux-designer), refined in Stage 3
+│   └── index.html         ← Stage 3 output (frontend-dev)
 └── ...
 ```
+
+**Router index (`.designs/index.html`)** — a card-grid landing page that links to every prototype folder. It must be updated whenever a new prototype is created so it stays discoverable when you run `npx --yes serve .designs`. See **Step 4** of the orchestration protocol below.
 
 ### Versioning
 
 - **No v1, v2 suffixes.** Git manages versions. Edit files in place.
 - If the user says "don't touch the other one" or asks for a completely different flow, create a new folder. Otherwise update the existing one.
-- If a feature replaces another, update the existing folder. Don't duplicate.
-
-### Core principle: design is source of truth for looks
-
-- The design dictates visual decisions. Code follows the design.
-- But code drives structure — models, API endpoints, DB schema constrain what's possible.
-- Iterate both: read code → improve design → update code to match.
-- When design and code differ, add a "Design → Code alignment" section in the spec flagging the deltas.
 
 ---
 
-## Stage 1: PM — Clarify the scope
+## Orchestration protocol
 
-Before any design work, resolve ambiguity. Ask all questions in one batch:
+### Step 0 — Check the vendor bundle
 
-1. **Where does this live?** — New page? New tab inside an existing route? Replacing a component? Which path under `app/`?
-2. **What data is involved?** — What models or tables? What API routes exist (or need to exist) under `app/api/`?
-3. **Who uses it?** — What role / persona? What device (desktop, tablet, phone)?
-4. **What's the primary action?** — The one thing the user does most often on this screen.
-5. **What already exists?** — Is there a current version? What's wrong with it?
-6. **Edge cases** — Empty state, error state, first-time use, permission-denied.
+Before any agent runs, verify `.designs/vendor/alix-ui.js` exists. If it doesn't, create the vendor files (see **Appendix A**) and run `sh .designs/vendor/bundle.sh`. This is the only setup work the skill itself does — the rest is delegated.
 
-If the feature is vague ("build me a dashboard"), push back for specifics before designing.
+### Stage 1 — feature-planner (PM)
+
+Invoke the `feature-planner` agent. **Brief it explicitly as a prototype-only task** — it must not produce a plan that touches `app/`, route handlers, or DB code. Pass the feature name, the user's request, and this instruction verbatim:
+
+> "Prototype-mode planning. The output must be a plan for a static HTML mockup under `.designs/<feature-name>/` only. No app code, no API routes, no DB. Skip Phase 2 (API) and Phase 3 (Page/components in `app/`). Keep Phase 1 (design scope) and Phase 4 (open questions). Write the plan to `.designs/<feature-name>/plan.md`."
+
+The agent should:
+1. Ask the user the PM-clarification questions (scope, persona, primary action, edge cases, what already exists). All in one batch.
+2. Wait for answers.
+3. Write `.designs/<feature-name>/plan.md` with the prototype-scoped plan.
+
+After the agent returns, **show the plan to the user and pause for sign-off** before Stage 2.
+
+### Stage 2 — ux-designer
+
+Invoke the `ux-designer` agent. Pass the path to `plan.md` from Stage 1 and this instruction:
+
+> "Prototype-mode UX. Read `.designs/<feature-name>/plan.md`. Produce a UI spec at `.designs/<feature-name>/spec.md` mapping every UI element to a `@alixpartners/ui-components` primitive. Tables map to `AgGrid` from the vendor bundle. Every interactive component must define loading / empty / error / populated states. Three responsive breakpoints: ≤900 / ≤640 / ≤400 px. Do not write code — spec only."
+
+The agent should:
+1. Read `plan.md` and the project to find reusable patterns.
+2. Ask any UX questions in one batch and wait for answers.
+3. Write `.designs/<feature-name>/spec.md` matching the format documented in `ux-designer.md`.
+
+After the agent returns, **show the spec to the user and pause for sign-off** before Stage 3.
+
+### Stage 3 — frontend-dev
+
+Invoke the `frontend-dev` agent. Pass the paths to `plan.md` and `spec.md`, and this instruction:
+
+> "Prototype implementation mode. This is the documented exception to your 'no static HTML prototypes' rule — the `design-prototype` skill is invoking you. Read `.designs/<feature-name>/plan.md` and `.designs/<feature-name>/spec.md`. Produce `.designs/<feature-name>/index.html` following the template in `design-prototype/SKILL.md` Appendix B. Update `spec.md` if implementation forced any design changes (under a 'Design → Code alignment' section). Do not touch any file outside `.designs/<feature-name>/`, `.designs/vendor/`, or `.designs/index.html` (the router — see Step 4). Do not write Next.js code. Do not run `npm run lint` or `npm run dev` — this is static HTML, not part of the build."
+
+The agent should:
+1. Read both artifacts.
+2. Write `.designs/<feature-name>/index.html` per Appendix B.
+3. Update `spec.md` if needed.
+4. Print the local serve command (`npx --yes serve .designs`) and the prototype URL path.
+
+After the agent returns, **show the final artifacts to the user**. Stop.
 
 ---
 
-## Stage 2: UX — Read the project before designing
-
-**Mandatory steps before any design work:**
-
-1. **Detect the stack.** Read `package.json`. Expect `next` + `react`. Check whether the project uses the App Router (`app/`) or Pages Router (`pages/`).
-2. **Read existing `.designs/` folders.** Many patterns will already be solved. Reuse before inventing.
-3. **Read the current implementation.** Open the actual `.tsx` files for related routes/components, any API route handlers under `app/api/`, and any DB module. Don't design in a vacuum.
-4. **Read the library's exports.** `node_modules/@alixpartners/ui-components/dist/main.d.ts` lists every primitive available: `Button`, `Checkbox`, `Icon`, `Input`, `Radio`, `RadioGroup`, `Textarea`, `Toggle`, `Banner`, `Ghost`, `Dropdown`, `FilePicker`, `Search`, `Datepicker`, `RichTextEditor`, `Toast`, `ToastProvider`, `Creatable`, `SplitButton`, `DragAndDrop`, `Tab`, `TabNavigation`, `Dialog`, `TagsFields`, `NavBar`, `Tag`, `Tooltip`, `Spinner`, `Illustration`, plus utilities (`useToast`, `useFilePickerContext`, validators). The vendor bundle also re-exports an `AgGrid` React wrapper around AG Grid Community (loaded from CDN) — use it for every table.
-5. **Search for similar UI patterns** in the project — reuse before inventing.
-
-**Design principles:**
-- Compose `@alixpartners/ui-components` primitives. Do not invent custom equivalents of what the library exports.
-- For tables, use `AgGrid` (from the vendor bundle, backed by AG Grid Community via CDN). Don't hand-roll `<table>` elements.
-- Use the library's own styling. Don't hand-roll hex colors, px values, or font choices that conflict with what the library ships.
-- Every interactive component must define all four states: **loading, empty, error, populated**.
-- Critical/safety information must be always visible (banners, alerts), not buried behind tabs.
-- Flag any user-facing copy that needs review — don't invent product tone.
-
----
-
-## Stage 3: Output — vendor bundle + static prototype + spec
-
-### 3a. Bootstrap the vendor bundle (once per repo)
-
-Before producing the first prototype, check whether `.designs/vendor/alix-ui.js` exists. If not, create the vendor files.
+## Appendix A — Vendor bundle (one-time setup)
 
 `.designs/vendor/entry.tsx`:
 ```tsx
@@ -168,11 +183,13 @@ Run it:
 sh .designs/vendor/bundle.sh
 ```
 
-esbuild emits `alix-ui.js` and (because the library imports CSS as side effects) `alix-ui.css` alongside it. Rerun `bundle.sh` only when `@alixpartners/ui-components` (or one of its peers) is upgraded.
+esbuild emits `alix-ui.js` and `alix-ui.css` alongside it. Rerun `bundle.sh` only when `@alixpartners/ui-components` (or one of its peers) is upgraded.
 
-**Troubleshooting:** if bundling fails on missing peer deps, run `npm install` first — esbuild reads from `node_modules`.
+**Troubleshooting:** if bundling fails on missing peer deps, run `npm install` first.
 
-### 3b. The prototype HTML template
+---
+
+## Appendix B — Prototype HTML template (used by frontend-dev in Stage 3)
 
 Each `.designs/<feature>/index.html`:
 
@@ -184,7 +201,6 @@ Each `.designs/<feature>/index.html`:
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FeatureName — prototype</title>
   <link rel="stylesheet" href="../vendor/alix-ui.css" />
-  <!-- AG Grid: canonical primitive for any table. Imported via CDN per skill convention. -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-grid.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-theme-quartz.css" />
   <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31/dist/ag-grid-community.min.js"></script>
@@ -196,7 +212,6 @@ Each `.designs/<feature>/index.html`:
       font: 600 11px/1 system-ui; padding: 6px 10px;
       background: #111; color: #fff; border-radius: 999px;
     }
-    /* responsive overrides */
     @media (max-width: 900px) { /* tablet */ }
     @media (max-width: 640px) { /* mobile: stack columns, hide sidebar */ }
     @media (max-width: 400px) { /* small phone */ }
@@ -209,17 +224,15 @@ Each `.designs/<feature>/index.html`:
   <script type="text/babel" data-type="module" data-presets="react">
     import {
       React, createRoot,
-      AgGrid,                       // ← tables MUST use this; no hand-rolled <table>s
+      AgGrid,
       Button, Input /* whatever this prototype uses */
     } from "../vendor/alix-ui.js";
 
-    // ---- mock data ----
-    const rows = [/* realistic, enough to show the design working */];
+    const rows = [/* realistic mock data */];
 
     const columnDefs = [
       { field: "id",   headerName: "ID",   width: 80, pinned: "left" },
       { field: "name", headerName: "Name", flex: 2 },
-      // For non-trivial cells, return an HTML string from cellRenderer:
       { field: "status", headerName: "Status", cellRenderer: (p) =>
           `<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;
                         background:${p.value === "ok" ? "#dcfce7" : "#fee2e2"};
@@ -231,7 +244,6 @@ Each `.designs/<feature>/index.html`:
       return (
         <main style={{ padding: 24, display: "grid", gap: 16 }}>
           <h1>FeatureName</h1>
-          {/* compose library primitives here */}
           <AgGrid rowData={rows} columnDefs={columnDefs} height={420} rowHeight={36} headerHeight={36} />
         </main>
       );
@@ -244,19 +256,15 @@ Each `.designs/<feature>/index.html`:
 ```
 
 Rules:
-- JSX lives inside a single `<script type="text/babel" data-type="module" data-presets="react">`. Babel-standalone rewrites it to an ES module, so relative imports from `../vendor/alix-ui.js` work natively.
+- JSX lives inside a single `<script type="text/babel" data-type="module" data-presets="react">`.
 - Imports come **only** from `../vendor/alix-ui.js`. Never reference `@alixpartners/ui-components` directly from a prototype — it's a private package and won't resolve in the browser.
-- Three responsive breakpoints in `<style>`: tablet ≤900px, mobile ≤640px, small phone ≤400px.
+- Three responsive breakpoints: tablet ≤900px, mobile ≤640px, small phone ≤400px.
 - Add the `design-badge` corner pill.
 - No Tailwind classes, no bundler-specific syntax, no `import "x.css"` inside the inline script.
-- For app shell context (sidebar/topbar), render a static placeholder so the prototype feels real.
-- **Tables → `AgGrid`, always.** Never hand-roll a `<table>` in a prototype. The `<link>` + `<script>` for `ag-grid-community@31` are already in the template `<head>`; the vendor bundle exports an `AgGrid` React wrapper. See §3d below.
+- **Tables → `AgGrid`, always.** Never hand-roll a `<table>`. The vendor bundle exports the `AgGrid` React wrapper.
 
-### 3d. Tables: use AG Grid
+### Tables: AG Grid usage
 
-Every table in a prototype renders through the `AgGrid` component exported from `../vendor/alix-ui.js`. AG Grid is loaded from the public CDN (`cdn.jsdelivr.net/npm/ag-grid-community@31`) and the wrapper just feeds it `rowData` + `columnDefs`.
-
-Minimal usage:
 ```jsx
 import { AgGrid } from "../vendor/alix-ui.js";
 
@@ -272,33 +280,29 @@ const columnDefs = [
 <AgGrid rowData={positions} columnDefs={columnDefs} height={420} rowHeight={36} headerHeight={36} />
 ```
 
-Patterns:
-- **Custom cell rendering** — `cellRenderer` receives `params` and returns an HTML string. Style with inline `style="…"` or use existing classes from `alix-ui.css`. We do **not** ship the AG Grid React adapter, so renderers are HTML strings, not React components. For complex cells, hand-write the markup the way you would for a `<Tag>` (the lib's CSS classes are available).
-- **Number formatting** — use `valueFormatter` for display, keep raw numbers in `rowData` so sorting/filtering still works.
-- **Row colors** — `cellClass` or `cellStyle` keyed by row data is faster than per-cell renderers.
-- **Sort/filter/resize** — defaults are on (set in the vendor wrapper). Disable per column with `{ sortable: false, filter: false }`.
-- **Pin or freeze** — `pinned: "left" | "right"` on a column.
-- **Theme** — default is `ag-theme-quartz`. To match a project tokens.css, override via the `theme` prop on `AgGrid`.
-- **Height** — give the grid a fixed height (number or CSS value). AG Grid is a flex-fill component; it needs a bounded container.
-- **Mobile** — at ≤640px, AG Grid will horizontal-scroll the columns rather than linearize into cards. If a card layout is needed on phones, render the data through a non-grid component in a media query (acceptable exception; document it in the spec).
+- **Custom cell rendering** — `cellRenderer` returns an HTML string (no React adapter shipped). Style inline or via classes from `alix-ui.css`.
+- **Number formatting** — `valueFormatter` for display, keep raw numbers in `rowData`.
+- **Sort/filter/resize** — defaults on. Disable per column with `{ sortable: false, filter: false }`.
+- **Pin** — `pinned: "left" | "right"`.
+- **Theme** — default `ag-theme-quartz`. Override via the `theme` prop.
+- **Height** — give the grid a bounded height.
+- **Mobile** — at ≤640px AG Grid horizontal-scrolls; document in the spec if a card layout is needed instead.
 
-When to **not** use `AgGrid`:
-- Lists that are visually rows but semantically not tabular — leaderboards, top-movers panels, activity feeds. Use plain flex/grid layouts.
-- Single-key/value summary blocks (KPI cards). Those are not tables.
-- Definition lists, prop-value pairs. Use `<dl>` or a flex layout.
+When **not** to use `AgGrid`:
+- Visually-row-but-not-tabular lists (leaderboards, activity feeds) — use flex/grid.
+- KPI / summary blocks — not tables.
+- Definition lists — use `<dl>` or flex.
 
-### 3c. The MD spec (`spec.md`)
+---
 
-Required sections:
+## Appendix C — Spec format (used by ux-designer in Stage 2)
+
+Required sections in `.designs/<feature>/spec.md`:
 
 ```md
 # FeatureName — Design Specification
 > **Prototype**: `.designs/feature-name/index.html`
-> **Target**: `app/...` (route or component path)
-
-## Design → Code alignment (if applicable)
-| Design element | In current code? | Action |
-|---|---|---|
+> **Plan**: `.designs/feature-name/plan.md`
 
 ## Component tree
 
@@ -317,6 +321,10 @@ Required sections:
 ## Accessibility notes
 
 ## Open UX questions
+
+## Design → Code alignment (filled by frontend-dev in Stage 3, if applicable)
+| Spec element | What was built | Reason for delta |
+|---|---|---|
 ```
 
 ---
@@ -324,19 +332,16 @@ Required sections:
 ## Conventions
 
 ### File naming
-- Each feature: `.designs/<feature-name>/index.html` + `spec.md`.
+- Each feature: `.designs/<feature-name>/plan.md`, `spec.md`, `index.html`.
 - No version suffixes — git owns history.
-- A genuinely divergent flow → new folder.
 
 ### Vendor bundle
 - `.designs/vendor/` is shared across all prototypes.
 - Rebuild via `sh .designs/vendor/bundle.sh` only when the library or its peers (`react`, `react-dom`, `radix-ui`, `notistack`) are upgraded.
-- Commit `entry.tsx` and `bundle.sh` to git. The two outputs (`alix-ui.js`, `alix-ui.css`) can be committed for instant zero-setup previews, or gitignored if the team prefers a "run bundle.sh after clone" workflow — pick one and document it.
 
 ### tokens.css (optional)
 - Only create `.designs/tokens.css` if the project needs visual overrides on top of the library's CSS.
-- If present, link it from each prototype: `<link rel="stylesheet" href="../tokens.css" />` (after `alix-ui.css`).
-- Don't introduce a `--brand-*` token namespace just for prototypes — mirror whatever the real app uses.
+- If present, link from each prototype: `<link rel="stylesheet" href="../tokens.css" />` (after `alix-ui.css`).
 
 ### Component states
 Every component that loads data describes all four states:
@@ -349,41 +354,36 @@ Every component that loads data describes all four states:
 | **Populated** | Normal state with realistic mock data. |
 
 ### Mock data
-- Realistic enough to show the design working under real proportions (long names, long titles, edge values).
-- Keep it generic unless the project has a clear locale/domain — locale-specific mock data is a per-project override, not a default.
-- Pre-populate with enough rows to show pagination/scroll behavior where relevant.
+- Realistic enough to show the design under real proportions (long names, edge values).
+- Generic unless the project has a clear locale/domain.
 
 ### Responsive
-- Sidebar hides on mobile (`display: none` at ≤640px).
-- Tables collapse to bordered cards on mobile.
+- Sidebar hides on mobile (≤640px).
+- Tables horizontal-scroll on mobile (AG Grid default); document if cards are needed.
 - Hover-only actions become always-visible on touch widths.
 - Buttons go full-width with min-height ~2.5rem on mobile.
-- Filter chips, calendars, charts: horizontal-scroll containers with the scrollbar hidden.
 
 ### flows.json (optional)
-- `.designs/flows.json` documents architecture: nodes (pages, components, stores, externals) and flows (step-by-step data paths).
-- Worth creating once the project has ~3+ prototypes and architecture decisions need a single source of truth.
-- Update it when a design change moves responsibilities, adds a new component, or shifts a data path. Ask the user before regenerating if it already exists.
+- `.designs/flows.json` documents architecture: nodes (pages, components, stores, externals) and flows (data paths).
+- Worth creating once the project has ~3+ prototypes.
 
 ---
 
 ## What NOT to do
 
-- ❌ Don't write Next.js framework code (`use client`, server actions, route handlers) inside a prototype. The prototype is a leaf HTML page; the only React it runs is via the Babel-in-browser script.
-- ❌ Don't hardcode hex colors or pixel values when the library already exposes a primitive or class that covers the case.
+- ❌ Don't skip any of the three agents. If the user pushes to skip, confirm once, note the deviation in `spec.md`, then proceed.
+- ❌ Don't run any agent against files outside `.designs/`. This skill is prototype-only.
+- ❌ Don't write Next.js framework code (`use client`, server actions, route handlers) inside a prototype.
+- ❌ Don't hardcode hex colors or pixel values when the library exposes a primitive.
 - ❌ Don't invent new UI patterns when an `@alixpartners/ui-components` export covers it.
-- ❌ Don't hand-roll a `<table>`. Use `AgGrid` from the vendor bundle. Plain `<table>` is reserved for non-tabular cases (e.g., decorative grids) — if you find yourself reaching for one, the spec should say why.
-- ❌ Don't add a build step beyond the one-shot `bundle.sh`.
-- ❌ Don't load `@alixpartners/ui-components` from a public CDN (esm.sh, unpkg). The package is on a private registry — it must come from the local vendor bundle.
-- ❌ Don't load AG Grid from npm into the vendor bundle — keep it on the CDN. Bundling it would bloat `alix-ui.js` (the bundle is already 2 MB) and force a rebuild every time AG Grid bumps.
-- ❌ Don't import directly from `@alixpartners/ui-components` inside the prototype script. Always import from `../vendor/alix-ui.js`.
-- ❌ Don't design in a vacuum — always read the existing code first.
-- ❌ Don't skip the PM step for vague requests.
-- ❌ Don't create prototypes without the MD spec.
-- ❌ Don't forget the three responsive breakpoints.
-- ❌ Don't skip the four-state table in `spec.md`.
-- ❌ Don't add v1/v2 folder suffixes.
+- ❌ Don't hand-roll a `<table>`. Use `AgGrid`.
+- ❌ Don't add a build step beyond `bundle.sh`.
+- ❌ Don't load `@alixpartners/ui-components` from a public CDN — use the local vendor bundle.
+- ❌ Don't load AG Grid from npm into the vendor bundle — keep it on the CDN.
+- ❌ Don't import `@alixpartners/ui-components` directly from a prototype — import from `../vendor/alix-ui.js`.
+- ❌ Don't design in a vacuum — agents must read the existing code and prior `.designs/` first.
 - ❌ Don't add Tailwind classes inside a prototype — Tailwind isn't running there.
+- ❌ Don't run `npm run lint` or `npm run dev` from Stage 3 — prototypes are static HTML, not part of the build.
 
 ---
 
@@ -395,13 +395,6 @@ From the repo root:
 npx --yes serve .designs
 ```
 
-Open `http://localhost:3000/<feature-name>/` (or whichever port `serve` picks).
+Open `http://localhost:3000/<feature-name>/`.
 
-Each prototype is a pure static page: it loads `alix-ui.css` + AG Grid CSS + Babel-standalone (CDN) + AG Grid Community UMD (CDN) + the local ESM bundle (`alix-ui.js`), then mounts a React tree at `#root`. The AG Grid UMD exposes a global `agGrid` that the vendor bundle's `AgGrid` wrapper consumes.
-
----
-
-## Integration with other skills
-
-- **Before designing**: read `node_modules/@alixpartners/ui-components/dist/main.d.ts` to know what primitives are available.
-- **After approval**: hand the prototype + `spec.md` to whichever implementation skill the team uses (e.g., `feature-planner`) to produce a real `app/<route>/page.tsx`.
+Each prototype loads `alix-ui.css` + AG Grid CSS + Babel-standalone (CDN) + AG Grid UMD (CDN) + the local ESM bundle (`alix-ui.js`), then mounts a React tree at `#root`.
