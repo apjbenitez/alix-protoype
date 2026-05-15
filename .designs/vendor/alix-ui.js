@@ -509,7 +509,7 @@ var require_react_development = __commonJS({
           }
           return element;
         };
-        function createElement2(type, config, children) {
+        function createElement3(type, config, children) {
           var propName;
           var props = {};
           var key = null;
@@ -1091,11 +1091,11 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useReducer(reducer, initialArg, init);
         }
-        function useRef18(initialValue) {
+        function useRef19(initialValue) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
-        function useEffect16(create, deps) {
+        function useEffect17(create, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useEffect(create, deps);
         }
@@ -1111,7 +1111,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useCallback(callback, deps);
         }
-        function useMemo7(create, deps) {
+        function useMemo8(create, deps) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useMemo(create, deps);
         }
@@ -1608,7 +1608,7 @@ var require_react_development = __commonJS({
               error("React.createElement: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: %s.%s", typeString, info);
             }
           }
-          var element = createElement2.apply(this, arguments);
+          var element = createElement3.apply(this, arguments);
           if (element == null) {
             return element;
           }
@@ -1878,14 +1878,14 @@ var require_react_development = __commonJS({
         exports.useContext = useContext4;
         exports.useDebugValue = useDebugValue;
         exports.useDeferredValue = useDeferredValue;
-        exports.useEffect = useEffect16;
+        exports.useEffect = useEffect17;
         exports.useId = useId;
         exports.useImperativeHandle = useImperativeHandle;
         exports.useInsertionEffect = useInsertionEffect;
         exports.useLayoutEffect = useLayoutEffect3;
-        exports.useMemo = useMemo7;
+        exports.useMemo = useMemo8;
         exports.useReducer = useReducer2;
-        exports.useRef = useRef18;
+        exports.useRef = useRef19;
         exports.useState = useState16;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
@@ -9415,7 +9415,7 @@ var require_react_dom_development = __commonJS({
             }
           }
         }
-        function createElement2(type, props, rootContainerElement, parentNamespace) {
+        function createElement3(type, props, rootContainerElement, parentNamespace) {
           var isCustomComponentTag;
           var ownerDocument = getOwnerDocumentFromRootContainer(rootContainerElement);
           var domElement;
@@ -10285,7 +10285,7 @@ var require_react_dom_development = __commonJS({
             }
             parentNamespace = hostContextDev.namespace;
           }
-          var domElement = createElement2(type, props, rootContainerInstance, parentNamespace);
+          var domElement = createElement3(type, props, rootContainerInstance, parentNamespace);
           precacheFiberNode(internalInstanceHandle, domElement);
           updateFiberProps(domElement, props);
           return domElement;
@@ -24486,6 +24486,7 @@ var require_jsx_runtime = __commonJS({
 });
 
 // entry.tsx
+var import_react25 = __toESM(require_react());
 var React = __toESM(require_react());
 var import_client = __toESM(require_client());
 
@@ -34793,8 +34794,64 @@ function b22(C4) {
 
 // ../../node_modules/@alixpartners/ui-components/dist/ap-logos-CwA4O8B7.js
 var o9 = ["ap-icon-logo-alixpartners", "ap-icon-logo-chapter11", "ap-icon-logo-deedi", "ap-icon-logo-elevation", "ap-icon-logo-gto", "ap-icon-logo-radial", "ap-icon-logo-rpms", "ap-icon-logo-smart-factory", "ap-icon-logo-sxr", "ap-icon-logo-working-capital", "ap-icon-logo-vault", "ap-icon-logo-codex"];
+
+// entry.tsx
+function AgGrid({
+  rowData,
+  columnDefs,
+  height = 400,
+  theme = "ag-theme-quartz",
+  gridOptions = {},
+  defaultColDef,
+  rowHeight,
+  headerHeight,
+  pagination,
+  paginationPageSize,
+  onReady
+}) {
+  const containerRef = (0, import_react25.useRef)(null);
+  const apiRef = (0, import_react25.useRef)(null);
+  const mergedDefaults = (0, import_react25.useMemo)(
+    () => ({ resizable: true, sortable: true, filter: true, flex: 1, minWidth: 80, ...defaultColDef || {} }),
+    [defaultColDef]
+  );
+  (0, import_react25.useEffect)(() => {
+    if (!containerRef.current) return;
+    const agGrid = globalThis.agGrid;
+    if (!agGrid?.createGrid) {
+      containerRef.current.innerHTML = '<div style="padding:24px;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;font:13px system-ui;">AG Grid not loaded. Add the CDN &lt;script&gt; and &lt;link&gt; tags to the page &lt;head&gt;.</div>';
+      return;
+    }
+    const api = agGrid.createGrid(containerRef.current, {
+      rowData,
+      columnDefs,
+      defaultColDef: mergedDefaults,
+      animateRows: true,
+      rowHeight,
+      headerHeight,
+      pagination,
+      paginationPageSize,
+      ...gridOptions
+    });
+    apiRef.current = api;
+    onReady?.(api);
+    return () => api.destroy?.();
+  }, []);
+  (0, import_react25.useEffect)(() => {
+    apiRef.current?.setGridOption?.("rowData", rowData);
+  }, [rowData]);
+  (0, import_react25.useEffect)(() => {
+    apiRef.current?.setGridOption?.("columnDefs", columnDefs);
+  }, [columnDefs]);
+  const style = {
+    height: typeof height === "number" ? height + "px" : height,
+    width: "100%"
+  };
+  return (0, import_react25.createElement)("div", { ref: containerRef, className: theme, style });
+}
 var export_createRoot = import_client.createRoot;
 export {
+  AgGrid,
   E5 as Banner,
   T as Button,
   _e as Checkbox,

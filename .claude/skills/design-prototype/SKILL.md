@@ -74,11 +74,12 @@ If the feature is vague ("build me a dashboard"), push back for specifics before
 1. **Detect the stack.** Read `package.json`. Expect `next` + `react`. Check whether the project uses the App Router (`app/`) or Pages Router (`pages/`).
 2. **Read existing `.designs/` folders.** Many patterns will already be solved. Reuse before inventing.
 3. **Read the current implementation.** Open the actual `.tsx` files for related routes/components, any API route handlers under `app/api/`, and any DB module. Don't design in a vacuum.
-4. **Read the library's exports.** `node_modules/@alixpartners/ui-components/dist/main.d.ts` lists every primitive available: `Button`, `Checkbox`, `Icon`, `Input`, `Radio`, `RadioGroup`, `Textarea`, `Toggle`, `Banner`, `Ghost`, `Dropdown`, `FilePicker`, `Search`, `Datepicker`, `RichTextEditor`, `Toast`, `ToastProvider`, `Creatable`, `SplitButton`, `DragAndDrop`, `Tab`, `TabNavigation`, `Dialog`, `TagsFields`, `NavBar`, `Tag`, `Tooltip`, `Spinner`, `Illustration`, plus utilities (`useToast`, `useFilePickerContext`, validators).
+4. **Read the library's exports.** `node_modules/@alixpartners/ui-components/dist/main.d.ts` lists every primitive available: `Button`, `Checkbox`, `Icon`, `Input`, `Radio`, `RadioGroup`, `Textarea`, `Toggle`, `Banner`, `Ghost`, `Dropdown`, `FilePicker`, `Search`, `Datepicker`, `RichTextEditor`, `Toast`, `ToastProvider`, `Creatable`, `SplitButton`, `DragAndDrop`, `Tab`, `TabNavigation`, `Dialog`, `TagsFields`, `NavBar`, `Tag`, `Tooltip`, `Spinner`, `Illustration`, plus utilities (`useToast`, `useFilePickerContext`, validators). The vendor bundle also re-exports an `AgGrid` React wrapper around AG Grid Community (loaded from CDN) — use it for every table.
 5. **Search for similar UI patterns** in the project — reuse before inventing.
 
 **Design principles:**
 - Compose `@alixpartners/ui-components` primitives. Do not invent custom equivalents of what the library exports.
+- For tables, use `AgGrid` (from the vendor bundle, backed by AG Grid Community via CDN). Don't hand-roll `<table>` elements.
 - Use the library's own styling. Don't hand-roll hex colors, px values, or font choices that conflict with what the library ships.
 - Every interactive component must define all four states: **loading, empty, error, populated**.
 - Critical/safety information must be always visible (banners, alerts), not buried behind tabs.
@@ -94,9 +95,59 @@ Before producing the first prototype, check whether `.designs/vendor/alix-ui.js`
 
 `.designs/vendor/entry.tsx`:
 ```tsx
+import { useEffect, useRef, useMemo, createElement } from "react";
+
 export * as React from "react";
 export { createRoot } from "react-dom/client";
 export * from "@alixpartners/ui-components";
+
+/**
+ * Thin React wrapper around AG Grid Community loaded from the CDN.
+ * AG Grid is the canonical primitive for tables in every prototype — do not hand-roll <table>.
+ * The CDN script must be present in the HTML <head>; this wrapper reads globalThis.agGrid.
+ */
+export function AgGrid({
+  rowData,
+  columnDefs,
+  height = 400,
+  theme = "ag-theme-quartz",
+  gridOptions = {},
+  defaultColDef,
+  rowHeight,
+  headerHeight,
+  pagination,
+  paginationPageSize,
+  onReady,
+}) {
+  const containerRef = useRef(null);
+  const apiRef = useRef(null);
+  const mergedDefaults = useMemo(
+    () => ({ resizable: true, sortable: true, filter: true, flex: 1, minWidth: 80, ...(defaultColDef || {}) }),
+    [defaultColDef]
+  );
+  useEffect(() => {
+    const agGrid = globalThis.agGrid;
+    if (!agGrid?.createGrid) {
+      containerRef.current.innerHTML =
+        '<div style="padding:24px;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;font:13px system-ui">AG Grid not loaded.</div>';
+      return;
+    }
+    const api = agGrid.createGrid(containerRef.current, {
+      rowData, columnDefs, defaultColDef: mergedDefaults,
+      animateRows: true, rowHeight, headerHeight, pagination, paginationPageSize, ...gridOptions,
+    });
+    apiRef.current = api;
+    onReady?.(api);
+    return () => api.destroy?.();
+  }, []);
+  useEffect(() => { apiRef.current?.setGridOption?.("rowData", rowData); }, [rowData]);
+  useEffect(() => { apiRef.current?.setGridOption?.("columnDefs", columnDefs); }, [columnDefs]);
+  return createElement("div", {
+    ref: containerRef,
+    className: theme,
+    style: { height: typeof height === "number" ? height + "px" : height, width: "100%" },
+  });
+}
 ```
 
 `.designs/vendor/bundle.sh`:
@@ -133,6 +184,10 @@ Each `.designs/<feature>/index.html`:
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FeatureName — prototype</title>
   <link rel="stylesheet" href="../vendor/alix-ui.css" />
+  <!-- AG Grid: canonical primitive for any table. Imported via CDN per skill convention. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-grid.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-theme-quartz.css" />
+  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31/dist/ag-grid-community.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
   <style>
     body { margin: 0; font-family: system-ui, sans-serif; }
@@ -154,17 +209,30 @@ Each `.designs/<feature>/index.html`:
   <script type="text/babel" data-type="module" data-presets="react">
     import {
       React, createRoot,
+      AgGrid,                       // ← tables MUST use this; no hand-rolled <table>s
       Button, Input /* whatever this prototype uses */
     } from "../vendor/alix-ui.js";
 
     // ---- mock data ----
     const rows = [/* realistic, enough to show the design working */];
 
+    const columnDefs = [
+      { field: "id",   headerName: "ID",   width: 80, pinned: "left" },
+      { field: "name", headerName: "Name", flex: 2 },
+      // For non-trivial cells, return an HTML string from cellRenderer:
+      { field: "status", headerName: "Status", cellRenderer: (p) =>
+          `<span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;
+                        background:${p.value === "ok" ? "#dcfce7" : "#fee2e2"};
+                        color:${p.value === "ok" ? "#166534" : "#991b1b"}">${p.value}</span>`
+      },
+    ];
+
     function App() {
       return (
         <main style={{ padding: 24, display: "grid", gap: 16 }}>
           <h1>FeatureName</h1>
           {/* compose library primitives here */}
+          <AgGrid rowData={rows} columnDefs={columnDefs} height={420} rowHeight={36} headerHeight={36} />
         </main>
       );
     }
@@ -182,6 +250,42 @@ Rules:
 - Add the `design-badge` corner pill.
 - No Tailwind classes, no bundler-specific syntax, no `import "x.css"` inside the inline script.
 - For app shell context (sidebar/topbar), render a static placeholder so the prototype feels real.
+- **Tables → `AgGrid`, always.** Never hand-roll a `<table>` in a prototype. The `<link>` + `<script>` for `ag-grid-community@31` are already in the template `<head>`; the vendor bundle exports an `AgGrid` React wrapper. See §3d below.
+
+### 3d. Tables: use AG Grid
+
+Every table in a prototype renders through the `AgGrid` component exported from `../vendor/alix-ui.js`. AG Grid is loaded from the public CDN (`cdn.jsdelivr.net/npm/ag-grid-community@31`) and the wrapper just feeds it `rowData` + `columnDefs`.
+
+Minimal usage:
+```jsx
+import { AgGrid } from "../vendor/alix-ui.js";
+
+const columnDefs = [
+  { field: "sym",    headerName: "Symbol",  pinned: "left", width: 100 },
+  { field: "sector", headerName: "Sector",  width: 130 },
+  { field: "qty",    headerName: "Qty",     type: "rightAligned", width: 100, valueFormatter: (p) => p.value.toLocaleString() },
+  { field: "pnl",    headerName: "P&L",     type: "rightAligned", flex: 1,
+    cellClass: (p) => p.value >= 0 ? "pl-pos" : "pl-neg",
+    valueFormatter: (p) => (p.value >= 0 ? "+$" : "−$") + Math.abs(p.value).toLocaleString() },
+];
+
+<AgGrid rowData={positions} columnDefs={columnDefs} height={420} rowHeight={36} headerHeight={36} />
+```
+
+Patterns:
+- **Custom cell rendering** — `cellRenderer` receives `params` and returns an HTML string. Style with inline `style="…"` or use existing classes from `alix-ui.css`. We do **not** ship the AG Grid React adapter, so renderers are HTML strings, not React components. For complex cells, hand-write the markup the way you would for a `<Tag>` (the lib's CSS classes are available).
+- **Number formatting** — use `valueFormatter` for display, keep raw numbers in `rowData` so sorting/filtering still works.
+- **Row colors** — `cellClass` or `cellStyle` keyed by row data is faster than per-cell renderers.
+- **Sort/filter/resize** — defaults are on (set in the vendor wrapper). Disable per column with `{ sortable: false, filter: false }`.
+- **Pin or freeze** — `pinned: "left" | "right"` on a column.
+- **Theme** — default is `ag-theme-quartz`. To match a project tokens.css, override via the `theme` prop on `AgGrid`.
+- **Height** — give the grid a fixed height (number or CSS value). AG Grid is a flex-fill component; it needs a bounded container.
+- **Mobile** — at ≤640px, AG Grid will horizontal-scroll the columns rather than linearize into cards. If a card layout is needed on phones, render the data through a non-grid component in a media query (acceptable exception; document it in the spec).
+
+When to **not** use `AgGrid`:
+- Lists that are visually rows but semantically not tabular — leaderboards, top-movers panels, activity feeds. Use plain flex/grid layouts.
+- Single-key/value summary blocks (KPI cards). Those are not tables.
+- Definition lists, prop-value pairs. Use `<dl>` or a flex layout.
 
 ### 3c. The MD spec (`spec.md`)
 
@@ -268,8 +372,10 @@ Every component that loads data describes all four states:
 - ❌ Don't write Next.js framework code (`use client`, server actions, route handlers) inside a prototype. The prototype is a leaf HTML page; the only React it runs is via the Babel-in-browser script.
 - ❌ Don't hardcode hex colors or pixel values when the library already exposes a primitive or class that covers the case.
 - ❌ Don't invent new UI patterns when an `@alixpartners/ui-components` export covers it.
+- ❌ Don't hand-roll a `<table>`. Use `AgGrid` from the vendor bundle. Plain `<table>` is reserved for non-tabular cases (e.g., decorative grids) — if you find yourself reaching for one, the spec should say why.
 - ❌ Don't add a build step beyond the one-shot `bundle.sh`.
 - ❌ Don't load `@alixpartners/ui-components` from a public CDN (esm.sh, unpkg). The package is on a private registry — it must come from the local vendor bundle.
+- ❌ Don't load AG Grid from npm into the vendor bundle — keep it on the CDN. Bundling it would bloat `alix-ui.js` (the bundle is already 2 MB) and force a rebuild every time AG Grid bumps.
 - ❌ Don't import directly from `@alixpartners/ui-components` inside the prototype script. Always import from `../vendor/alix-ui.js`.
 - ❌ Don't design in a vacuum — always read the existing code first.
 - ❌ Don't skip the PM step for vague requests.
@@ -291,7 +397,7 @@ npx --yes serve .designs
 
 Open `http://localhost:3000/<feature-name>/` (or whichever port `serve` picks).
 
-Each prototype is a pure static page: it loads `alix-ui.css` + Babel-standalone (CDN) + the local ESM bundle (`alix-ui.js`), then mounts a React tree at `#root`.
+Each prototype is a pure static page: it loads `alix-ui.css` + AG Grid CSS + Babel-standalone (CDN) + AG Grid Community UMD (CDN) + the local ESM bundle (`alix-ui.js`), then mounts a React tree at `#root`. The AG Grid UMD exposes a global `agGrid` that the vendor bundle's `AgGrid` wrapper consumes.
 
 ---
 

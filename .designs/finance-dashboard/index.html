@@ -5,84 +5,378 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Finance Dashboard — prototype</title>
   <link rel="stylesheet" href="../vendor/alix-ui.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-grid.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-theme-quartz.css" />
+  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31/dist/ag-grid-community.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
   <style>
-    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f6f7f9; color: #0f172a; }
-    .page-wrap { max-width: 1400px; margin: 0 auto; padding: 0 24px 80px; }
+    /* =================================================================
+       AlixPartners Platforms Design System — resolved tokens
+       File: https://www.figma.com/design/uKDQ4UPs40MQXxn6CrcqTO/Platforms-Design-System
+       Mirrored from values in @alixpartners/ui-components (vendor/alix-ui.css)
+       ================================================================= */
+    :root {
+      --ap-font:        Roboto, sans-serif;
 
-    /* ---------- header ---------- */
-    .title-row {
-      display: grid;
-      grid-template-columns: 1fr auto auto;
-      gap: 12px;
-      align-items: end;
-      margin: 24px 0 16px;
+      --ap-bg-page:     #f1f1f1;
+      --ap-bg-surface:  #ffffff;
+      --ap-bg-subtle:   #fafafa;
+      --ap-bg-muted:    #f5f5f5;
+
+      --ap-text:        #28292c;
+      --ap-text-2:      #4a4a4a;
+      --ap-text-muted:  #727272;
+      --ap-text-soft:   #878787;
+
+      --ap-border:      #cccccc;
+      --ap-border-soft: #e6e6e6;
+
+      --ap-primary:     #024870;
+      --ap-primary-2:   #0369a3;
+
+      --ap-success:     #498e2b;
+      --ap-success-2:   #3f7b25;
+      --ap-success-bg:  #dff0db;
+
+      --ap-error:       #cb282e;
+      --ap-error-2:     #ac272c;
+      --ap-error-bg:    #f99397;
+
+      --ap-warning:     #ce7309;
+      --ap-warning-bg:  #fbe7c4;
+
+      --ap-radius-sm:   2px;
+      --ap-radius:      4px;
+      --ap-radius-md:   6px;
+      --ap-radius-lg:   8px;
+
+      --ap-space-1:     4px;
+      --ap-space-2:     8px;
+      --ap-space-3:     12px;
+      --ap-space-4:     16px;
+      --ap-space-5:     20px;
+      --ap-space-6:     24px;
+      --ap-space-8:     32px;
     }
-    .title-row h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.01em; }
-    .title-row .sub { margin: 4px 0 0; color: #64748b; font-size: 13px; }
 
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--ap-font);
+      font-size: 14px;
+      line-height: 1.45;
+      background: var(--ap-bg-page);
+      color: var(--ap-text);
+      -webkit-font-smoothing: antialiased;
+    }
+    .page-wrap { max-width: 1400px; margin: 0 auto; padding: 0 var(--ap-space-6) var(--ap-space-8); }
+
+    /* ---------- page header ---------- */
+    .page-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: var(--ap-space-3) var(--ap-space-4);
+      margin: var(--ap-space-6) 0 var(--ap-space-5);
+    }
+    .page-header__title { min-width: 0; }
+    .page-header__title h1 {
+      margin: 0;
+      font-size: 24px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2;
+      color: var(--ap-text);
+    }
+    .page-header__title .sub {
+      margin: 6px 0 0;
+      display: flex; flex-wrap: wrap; align-items: center; gap: var(--ap-space-2);
+      color: var(--ap-text-muted); font-size: 13px;
+    }
+    .page-header__title .sub .sep { color: var(--ap-border); }
+    .page-header__actions {
+      display: flex; align-items: flex-end; gap: var(--ap-space-2);
+      flex-wrap: wrap; justify-content: flex-end;
+    }
+    /* Datepicker reserves a 16px helperRow under the input for error/help text;
+       suppress it in the page header so the input bottom aligns with the button bottom. */
+    .page-header__actions [class*="Datepicker-module__helperRow"] { display: none; }
+
+    /* status pill in the page-header subtitle (replaces full-width banner) */
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 2px 8px;
+      background: var(--ap-bg-muted);
+      border: 1px solid var(--ap-border);
+      border-radius: 240px;
+      font-size: 12px; font-weight: 500;
+      color: var(--ap-text-2);
+      font-family: var(--ap-font);
+      line-height: 18px;
+    }
+    .status-pill::before {
+      content: ""; width: 8px; height: 8px; border-radius: 999px; display: inline-block;
+      background: var(--ap-text-soft);
+    }
+    .status-pill--success::before { background: var(--ap-success); }
+    .status-pill--warning::before { background: var(--ap-warning); }
+    .status-pill--error::before   { background: var(--ap-error); }
+
+    /* ---------- filter row (table-scoped) ---------- */
     .filter-row {
       display: grid;
       grid-template-columns: minmax(220px, 1.4fr) minmax(180px, 1fr) minmax(180px, 1fr) auto;
-      gap: 12px;
+      gap: var(--ap-space-3);
       align-items: end;
-      margin-bottom: 20px;
-      padding: 12px 16px;
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
+      margin: var(--ap-space-3) 0 var(--ap-space-4);
+      padding: var(--ap-space-3) var(--ap-space-4);
+      background: var(--ap-bg-surface);
+      border: 1px solid var(--ap-border);
+      border-radius: var(--ap-radius);
     }
     .filter-row > * { min-width: 0; }
     .filter-row .toggle-cell { padding-bottom: 6px; }
 
     /* ---------- KPI ---------- */
-    .kpi-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 0 0 24px; }
-    .kpi-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-    .kpi-label { display: flex; gap: 6px; align-items: center; color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
-    .kpi-value { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; line-height: 1.1; }
-    .kpi-delta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .kpi-grid {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--ap-space-4); margin: 0 0 var(--ap-space-6);
+    }
+    .kpi-card {
+      background: var(--ap-bg-surface);
+      border: 1px solid var(--ap-border);
+      border-radius: var(--ap-radius);
+      padding: var(--ap-space-4);
+      display: flex; flex-direction: column; gap: var(--ap-space-2);
+      min-width: 0;
+    }
+    .kpi-label { display: flex; gap: 6px; align-items: center; color: var(--ap-text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+    .kpi-value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; line-height: 1.15; color: var(--ap-text); }
+    .kpi-delta { display: flex; align-items: center; gap: var(--ap-space-2); flex-wrap: wrap; }
     .kpi-delta > * { white-space: nowrap; }
 
     /* ---------- panels ---------- */
-    .panel { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; }
-    .panel + .panel, .panel-stack > * + * { margin-top: 16px; }
-    .panel h2 { margin: 0 0 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: .06em; color: #334155; }
+    .panel {
+      background: var(--ap-bg-surface);
+      border: 1px solid var(--ap-border);
+      border-radius: var(--ap-radius);
+      padding: var(--ap-space-4);
+    }
+    .panel + .panel, .panel-stack > * + * { margin-top: var(--ap-space-4); }
+    .panel-head {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: var(--ap-space-3); flex-wrap: wrap;
+      margin-bottom: var(--ap-space-3);
+    }
+    .panel h2 {
+      margin: 0 0 var(--ap-space-3);
+      font-size: 13px; font-weight: 600; line-height: 1;
+      display: flex; align-items: center; gap: 8px;
+      text-transform: uppercase; letter-spacing: .06em;
+      color: var(--ap-text-2);
+    }
+    .panel-head h2 { margin: 0; }
 
-    .main-grid { display: grid; grid-template-columns: minmax(0, 2.1fr) minmax(280px, 1fr); gap: 24px; }
-    .sidebar { display: flex; flex-direction: column; gap: 16px; }
-    .stack-md > * + * { margin-top: 12px; }
-    .stack-sm > * + * { margin-top: 8px; }
+    .main-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2.1fr) minmax(300px, 1fr);
+      gap: var(--ap-space-6); align-items: start;
+      margin-top: var(--ap-space-4);
+    }
+    .filter-row + .main-grid { margin-top: 0; }
+    .sidebar { display: flex; flex-direction: column; gap: var(--ap-space-4); position: sticky; top: var(--ap-space-4); }
+    .stack-md > * + * { margin-top: var(--ap-space-3); }
+    .stack-sm > * + * { margin-top: var(--ap-space-2); }
 
     /* ---------- movers ---------- */
-    .movers { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .movers .col-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .movers .row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #e2e8f0; }
+    .movers { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ap-space-4); }
+    .movers .col-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--ap-space-2); }
+    .movers .col-head strong { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+    .movers .row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: var(--ap-space-2) 0;
+      border-bottom: 1px solid var(--ap-border-soft);
+    }
     .movers .row:last-child { border-bottom: none; }
-    .sym { font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
-    .qty { color: #64748b; font-size: 12px; font-variant-numeric: tabular-nums; }
+    .sym { font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .02em; font-size: 13px; color: var(--ap-text); }
+    .qty { color: var(--ap-text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 
-    /* ---------- positions table ---------- */
-    table.book { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-    table.book th, table.book td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: 13px; vertical-align: middle; }
-    table.book thead th { color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; background: #f8fafc; }
-    table.book td.num, table.book th.num { text-align: right; white-space: nowrap; }
-    table.book tbody tr:hover { background: #f8fafc; }
-    .pl-pos { color: #15803d; font-weight: 600; }
-    .pl-neg { color: #b91c1c; font-weight: 600; }
-    .pl-sub { display: block; font-size: 11px; color: #64748b; font-weight: 500; }
-    .col-sel    { width: 28px; }
-    .col-sym    { width: 70px; }
-    .col-sector { width: 110px; }
-    .col-action { width: 56px; }
+    /* ---------- positions table (AG Grid) ---------- */
+    .pl-pos { color: var(--ap-success-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .pl-neg { color: var(--ap-error-2);   font-weight: 600; font-variant-numeric: tabular-nums; }
+    .pl-sub { display: block; font-size: 11px; color: var(--ap-text-muted); font-weight: 500; }
+    .sector-chip {
+      display: inline-flex; align-items: center; font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: var(--ap-radius-sm); line-height: 18px;
+      font-family: var(--ap-font);
+    }
+    .view-link {
+      appearance: none; background: transparent; border: none; cursor: pointer;
+      color: var(--ap-primary-2);
+      font: 600 12px/1 var(--ap-font);
+      padding: 4px 8px; border-radius: var(--ap-radius);
+    }
+    .view-link:hover { background: var(--ap-bg-muted); text-decoration: underline; }
+    /* AG Grid mobile note: AG Grid horizontal-scrolls at narrow widths instead of
+       linearizing into cards. Users scroll the grid horizontally on phones. */
+
+    /* ---------- AG Grid — align with DS tokens ---------- */
+    .ag-theme-quartz {
+      --ag-font-family: var(--ap-font);
+      --ag-font-size: 13px;
+      --ag-foreground-color: var(--ap-text);
+      --ag-background-color: var(--ap-bg-surface);
+      --ag-header-foreground-color: var(--ap-text-2);
+      --ag-header-background-color: var(--ap-bg-muted);
+      --ag-odd-row-background-color: var(--ap-bg-surface);
+      --ag-row-hover-color: var(--ap-bg-muted);
+      --ag-border-color: var(--ap-border-soft);
+      --ag-row-border-color: var(--ap-border-soft);
+      --ag-header-column-separator-color: var(--ap-border);
+      --ag-selected-row-background-color: rgba(2,72,112,0.06);
+      --ag-control-panel-background-color: var(--ap-bg-surface);
+      --ag-border-radius: var(--ap-radius);
+      --ag-cell-horizontal-padding: var(--ap-space-3);
+    }
+    .ag-theme-quartz .ag-header-cell-text {
+      font-weight: 600; text-transform: uppercase; letter-spacing: .04em; font-size: 11px;
+    }
+
+    /* ---------- summary strip (positions / trades) ---------- */
+    .summary-strip {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--ap-space-3);
+      margin-bottom: var(--ap-space-4);
+    }
+    .summary-card {
+      padding: var(--ap-space-3) var(--ap-space-4);
+      border: 1px solid var(--ap-border);
+      border-radius: var(--ap-radius);
+      background: var(--ap-bg-surface);
+      min-width: 0;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .summary-label { font-size: 10px; color: var(--ap-text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+    .summary-value { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; line-height: 1.2; color: var(--ap-text); }
+    .summary-sub { font-size: 11px; color: var(--ap-text-muted); font-variant-numeric: tabular-nums; }
+
+    /* ---------- trade side / status chips ---------- */
+    .side-chip {
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; padding: 2px 8px;
+      border-radius: var(--ap-radius-sm); line-height: 18px; letter-spacing: .04em;
+      font-family: var(--ap-font);
+    }
+    .side-buy   { background: var(--ap-success-bg); color: var(--ap-success-2); }
+    .side-sell  { background: var(--ap-error-bg);   color: var(--ap-error-2); }
+    .side-short { background: var(--ap-warning-bg); color: var(--ap-warning); }
+    .side-cover { background: #d6e4ee;              color: var(--ap-primary); }
+    .status-dot {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 500; color: var(--ap-text-2);
+      font-family: var(--ap-font);
+    }
+    .status-dot::before {
+      content: ""; width: 8px; height: 8px; border-radius: 999px; display: inline-block;
+    }
+    .status-filled::before    { background: var(--ap-success); }
+    .status-partial::before   { background: var(--ap-warning); }
+    .status-pending::before   { background: var(--ap-text-soft); }
+    .status-cancelled::before { background: var(--ap-border); }
+
+    /* ---------- table-row controls block ---------- */
+    .table-controls { display: flex; gap: var(--ap-space-4); align-items: center; flex-wrap: wrap; }
+    .table-controls > * { white-space: nowrap; }
+
+    /* ---------- allocations ---------- */
+    .alloc-list { display: flex; flex-direction: column; gap: var(--ap-space-2); }
+    .alloc-row {
+      display: grid;
+      grid-template-columns: minmax(140px, 1.2fr) minmax(160px, 2fr) 56px 64px 80px 90px;
+      align-items: center;
+      gap: var(--ap-space-3);
+      padding: var(--ap-space-2) 0;
+      border-bottom: 1px solid var(--ap-border-soft);
+    }
+    .alloc-row:last-child { border-bottom: none; }
+    .alloc-row__name { font-weight: 600; color: var(--ap-text); font-size: 13px; min-width: 0; }
+    .alloc-row__sub  { font-weight: 400; color: var(--ap-text-muted); font-size: 11px; margin-top: 2px; }
+    .alloc-row__num  { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--ap-text); }
+
+    .alloc-bar {
+      position: relative; height: 8px; width: 100%;
+      background: var(--ap-bg-muted); border-radius: 999px; overflow: hidden;
+    }
+    .alloc-bar__fill {
+      position: absolute; top: 0; left: 0; height: 100%;
+      background: var(--ap-primary-2); border-radius: 999px;
+    }
+    .alloc-bar__fill--over  { background: var(--ap-warning); }
+    .alloc-bar__fill--under { background: var(--ap-text-soft); }
+    .alloc-bar__target {
+      position: absolute; top: -2px; bottom: -2px; width: 2px;
+      background: var(--ap-text); border-radius: 1px;
+    }
+    .alloc-tag {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 2px 8px; border-radius: var(--ap-radius-sm);
+      font-size: 11px; font-weight: 700; letter-spacing: .04em; line-height: 18px;
+      font-family: var(--ap-font); white-space: nowrap;
+    }
+    .alloc-tag--on    { background: var(--ap-bg-muted);   color: var(--ap-text-2); }
+    .alloc-tag--over  { background: var(--ap-warning-bg); color: var(--ap-warning); }
+    .alloc-tag--under { background: #d6e4ee;              color: var(--ap-primary); }
+
+    /* sector horizontal bars */
+    .sector-list { display: flex; flex-direction: column; gap: var(--ap-space-2); }
+    .sector-row {
+      display: grid; grid-template-columns: 140px 1fr 56px;
+      gap: var(--ap-space-3); align-items: center;
+      font-size: 13px;
+    }
+    .sector-row__bar {
+      height: 10px; background: var(--ap-bg-muted); border-radius: var(--ap-radius-sm); overflow: hidden;
+    }
+    .sector-row__fill {
+      height: 100%; background: var(--ap-primary-2); border-radius: var(--ap-radius-sm);
+    }
+    .sector-row__pct { text-align: right; font-variant-numeric: tabular-nums; color: var(--ap-text); font-weight: 600; }
+
+    /* ---------- compliance status chips ---------- */
+    .cmp-tag {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 2px 8px; border-radius: var(--ap-radius-sm);
+      font-size: 11px; font-weight: 700; letter-spacing: .04em; line-height: 18px;
+      font-family: var(--ap-font);
+    }
+    .cmp-tag--pass    { background: var(--ap-success-bg); color: var(--ap-success-2); }
+    .cmp-tag--warning { background: var(--ap-warning-bg); color: var(--ap-warning); }
+    .cmp-tag--fail    { background: var(--ap-error-bg);   color: var(--ap-error-2); }
+
+    @media (max-width: 700px) {
+      .alloc-row {
+        grid-template-columns: 1fr 1fr;
+        gap: var(--ap-space-2);
+      }
+      .alloc-row > :nth-child(2) { grid-column: 1 / -1; order: 5; }
+      .sector-row { grid-template-columns: 100px 1fr 50px; }
+    }
 
     /* ---------- empty / loading / error ---------- */
-    .empty-state { text-align: center; padding: 24px 16px; }
-    .empty-state h3 { margin: 12px 0 4px; font-size: 16px; }
-    .empty-state p { color: #64748b; margin: 0 0 16px; }
+    .empty-state { text-align: center; padding: var(--ap-space-6) var(--ap-space-4); }
+    .empty-state h3 { margin: var(--ap-space-3) 0 4px; font-size: 16px; color: var(--ap-text); font-weight: 600; }
+    .empty-state p { color: var(--ap-text-muted); margin: 0 0 var(--ap-space-4); }
     .empty-state .cta { display: inline-flex; justify-content: center; }
-    .loading-state { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 40px; color: #64748b; }
+    .loading-state {
+      display: flex; gap: var(--ap-space-3); align-items: center; justify-content: center;
+      padding: 40px; color: var(--ap-text-muted);
+    }
 
-    .design-badge { position: fixed; bottom: 12px; right: 12px; font: 600 11px/1 system-ui; padding: 6px 10px; background: #111; color: #fff; border-radius: 999px; z-index: 50; }
+    .design-badge {
+      position: fixed; bottom: var(--ap-space-3); right: var(--ap-space-3);
+      font: 600 11px/1 var(--ap-font);
+      padding: 6px 10px;
+      background: var(--ap-text); color: #fff;
+      border-radius: var(--ap-radius);
+      z-index: 50;
+    }
 
     /* ---------- responsive ---------- */
     @media (max-width: 1100px) {
@@ -90,48 +384,54 @@
       .filter-row .toggle-cell { grid-column: 1 / -1; }
       .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .main-grid { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
     }
     @media (max-width: 900px) {
-      .title-row { grid-template-columns: 1fr auto; }
-      .title-row .export-cell { grid-column: 1 / -1; justify-self: start; }
+      .page-header { grid-template-columns: 1fr; align-items: start; }
+      .page-header__actions { justify-content: flex-start; }
       .movers { grid-template-columns: 1fr; }
+      .summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 640px) {
-      .page-wrap { padding: 0 12px 80px; }
-      .title-row { grid-template-columns: 1fr; }
+      .page-wrap { padding: 0 var(--ap-space-3) var(--ap-space-8); }
       .filter-row { grid-template-columns: 1fr; }
       .filter-row .toggle-cell { grid-column: auto; }
       .kpi-grid { grid-template-columns: 1fr; }
-      table.book thead { display: none; }
-      table.book, table.book tbody, table.book tr { display: block; width: 100%; }
-      table.book tr { border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; }
-      table.book td { border: none; padding: 4px 0; display: grid; grid-template-columns: 90px 1fr; align-items: center; font-size: 13px; }
-      table.book td::before {
-        content: attr(data-label);
-        color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600;
-      }
-      table.book td.num { text-align: left; }
-      table.book td:first-child::before { content: ""; }
+      .summary-strip { grid-template-columns: 1fr; }
+      .page-header__actions > * { flex: 1 1 auto; }
     }
     @media (max-width: 400px) {
-      .title-row h1 { font-size: 22px; }
-      .kpi-value { font-size: 22px; }
+      .page-header__title h1 { font-size: 20px; }
+      .kpi-value { font-size: 20px; }
     }
   </style>
 </head>
 <body>
   <div id="root"></div>
+  <div id="error-overlay" style="display:none;position:fixed;top:0;left:0;right:0;padding:14px 18px;background:#7f1d1d;color:#fff;font:13px/1.4 system-ui;z-index:9999;white-space:pre-wrap;"></div>
+  <script>
+    (function () {
+      const show = (msg) => {
+        const el = document.getElementById("error-overlay");
+        el.style.display = "block";
+        el.textContent = "Runtime error in prototype:\n" + msg;
+      };
+      window.addEventListener("error", (e) => show(e.message + (e.filename ? " (" + e.filename + ":" + e.lineno + ")" : "")));
+      window.addEventListener("unhandledrejection", (e) => show("Unhandled promise: " + (e.reason && e.reason.message || e.reason)));
+    })();
+  </script>
   <div class="design-badge">finance-dashboard — prototype</div>
 
   <script type="text/babel" data-type="module" data-presets="react">
     import {
       React, createRoot,
+      AgGrid,
       NavBar, Banner, Button, Ghost, Tag, Tooltip, Toggle, Checkbox,
       Input, Search, Datepicker, Dropdown, SplitButton, TabNavigation, Tab,
       Spinner, Icon, Dialog, ToastProvider, useToast, Textarea, TagsFields,
       Creatable, RadioGroup, Radio, Illustration
     } from "../vendor/alix-ui.js";
-    const { useState } = React;
+    const { useState, useMemo } = React;
 
     // ----------- mock data -----------
     const KPIS = [
@@ -173,12 +473,90 @@
     ];
 
     const POSITIONS = [
-      { sym: "NVDA", sector: "Tech",       qty:  1400, avg: 920.42, mark: 956.10, mv:  1338540, pnl:  49952, pct:  3.87 },
-      { sym: "TSLA", sector: "Consumer",   qty:   950, avg: 174.20, mark: 178.30, mv:   169385, pnl:   3895, pct:  2.35 },
-      { sym: "MSFT", sector: "Tech",       qty:   600, avg: 428.00, mark: 432.70, mv:   259620, pnl:   2820, pct:  1.10 },
-      { sym: "AMZN", sector: "Consumer",   qty:   420, avg: 184.10, mark: 185.75, mv:    78015, pnl:    693, pct:  0.90 },
-      { sym: "META", sector: "Tech",       qty:  -300, avg: 482.00, mark: 488.10, mv:  -146430, pnl:  -1830, pct: -1.20 },
-      { sym: "JPM",  sector: "Financials", qty:  -500, avg: 196.00, mark: 197.40, mv:   -98700, pnl:   -700, pct: -0.71 },
+      { sym: "NVDA", sector: "Tech",       qty:  1400, avg: 920.42, mark: 956.10, mv:  1338540, pnl:  49952, pct:  3.87, account: "Core Long Equity" },
+      { sym: "TSLA", sector: "Consumer",   qty:   950, avg: 174.20, mark: 178.30, mv:   169385, pnl:   3895, pct:  2.35, account: "Core Long Equity" },
+      { sym: "MSFT", sector: "Tech",       qty:   600, avg: 428.00, mark: 432.70, mv:   259620, pnl:   2820, pct:  1.10, account: "Core Long Equity" },
+      { sym: "AMZN", sector: "Consumer",   qty:   420, avg: 184.10, mark: 185.75, mv:    78015, pnl:    693, pct:  0.90, account: "Core Long Equity" },
+      { sym: "META", sector: "Tech",       qty:  -300, avg: 482.00, mark: 488.10, mv:  -146430, pnl:  -1830, pct: -1.20, account: "Hedge Overlay" },
+      { sym: "JPM",  sector: "Financials", qty:  -500, avg: 196.00, mark: 197.40, mv:   -98700, pnl:   -700, pct: -0.71, account: "Hedge Overlay" },
+    ];
+
+    // ----------- extended positions for the dedicated Positions tab -----------
+    const POSITIONS_FULL = [
+      ...POSITIONS,
+      { sym: "AAPL",  sector: "Tech",        qty:   800, avg: 188.50, mark: 191.20, mv:   152960, pnl:   2160, pct:  1.43, account: "Core Long Equity" },
+      { sym: "GOOGL", sector: "Tech",        qty:   500, avg: 162.30, mark: 165.40, mv:    82700, pnl:   1550, pct:  1.91, account: "Core Long Equity" },
+      { sym: "BAC",   sector: "Financials",  qty: -1200, avg: 38.40,  mark: 38.92,  mv:   -46704, pnl:   -624, pct: -1.35, account: "Hedge Overlay" },
+      { sym: "GS",    sector: "Financials",  qty:   180, avg: 472.00, mark: 478.80, mv:    86184, pnl:   1224, pct:  1.44, account: "Macro Discretionary" },
+      { sym: "XOM",   sector: "Energy",      qty:   600, avg: 116.20, mark: 114.80, mv:    68880, pnl:   -840, pct: -1.20, account: "Macro Discretionary" },
+      { sym: "CVX",   sector: "Energy",      qty:  -250, avg: 152.30, mark: 150.95, mv:   -37738, pnl:    338, pct:  0.89, account: "Hedge Overlay" },
+      { sym: "PFE",   sector: "Healthcare",  qty:  1500, avg: 28.40,  mark: 29.10,  mv:    43650, pnl:   1050, pct:  2.47, account: "Core Long Equity" },
+      { sym: "UNH",   sector: "Healthcare",  qty:   220, avg: 524.00, mark: 530.20, mv:   116644, pnl:   1364, pct:  1.18, account: "Core Long Equity" },
+      { sym: "LLY",   sector: "Healthcare",  qty:   140, avg: 762.00, mark: 770.80, mv:   107912, pnl:   1232, pct:  1.15, account: "Core Long Equity" },
+      { sym: "WMT",   sector: "Consumer",    qty:   600, avg: 68.90,  mark: 69.40,  mv:    41640, pnl:    300, pct:  0.73, account: "Core Long Equity" },
+      { sym: "HD",    sector: "Consumer",    qty:  -180, avg: 348.00, mark: 351.40, mv:   -63252, pnl:   -612, pct: -0.98, account: "Hedge Overlay" },
+      { sym: "AMD",   sector: "Tech",        qty:   420, avg: 178.20, mark: 182.60, mv:    76692, pnl:   1848, pct:  2.47, account: "Core Long Equity" },
+      { sym: "ORCL",  sector: "Tech",        qty:   320, avg: 142.10, mark: 143.85, mv:    46032, pnl:    560, pct:  1.23, account: "Core Long Equity" },
+      { sym: "WFC",   sector: "Financials",  qty:   500, avg: 62.40,  mark: 62.10,  mv:    31050, pnl:   -150, pct: -0.48, account: "Macro Discretionary" },
+      { sym: "SLB",   sector: "Energy",      qty:   800, avg: 47.20,  mark: 48.10,  mv:    38480, pnl:    720, pct:  1.91, account: "Macro Discretionary" },
+      { sym: "ABBV",  sector: "Healthcare",  qty:  -150, avg: 168.30, mark: 169.90, mv:   -25485, pnl:   -240, pct: -0.95, account: "Hedge Overlay" },
+      { sym: "SPY",   sector: "Index",       qty:  -400, avg: 528.00, mark: 530.30, mv:  -212120, pnl:   -920, pct: -0.44, account: "Hedge Overlay" },
+    ];
+
+    // ----------- trade blotter for the Trades tab -----------
+    const TRADES = [
+      { id: "F-10314", time: "15:58:21", side: "BUY",   sym: "NVDA",  qty:  200, price: 956.10, value: 191220, fees: 14.30, status: "filled",    account: "Core Long Equity",    trader: "S. Park" },
+      { id: "F-10312", time: "15:51:08", side: "SELL",  sym: "META",  qty:  100, price: 488.10, value:  48810, fees:  7.40, status: "filled",    account: "Hedge Overlay",       trader: "J. Kim" },
+      { id: "F-10309", time: "15:44:55", side: "BUY",   sym: "AMD",   qty:  150, price: 182.60, value:  27390, fees:  4.10, status: "filled",    account: "Core Long Equity",    trader: "S. Park" },
+      { id: "F-10307", time: "15:31:42", side: "SHORT", sym: "BAC",   qty:  400, price:  38.92, value:  15568, fees:  2.30, status: "filled",    account: "Hedge Overlay",       trader: "J. Kim" },
+      { id: "F-10305", time: "15:22:19", side: "BUY",   sym: "PFE",   qty:  500, price:  29.10, value:  14550, fees:  2.20, status: "filled",    account: "Core Long Equity",    trader: "R. Chen" },
+      { id: "F-10304", time: "15:14:03", side: "COVER", sym: "CVX",   qty:  100, price: 150.95, value:  15095, fees:  2.30, status: "filled",    account: "Hedge Overlay",       trader: "J. Kim" },
+      { id: "F-10301", time: "14:58:46", side: "BUY",   sym: "TSLA",  qty:   80, price: 178.30, value:  14264, fees:  2.10, status: "filled",    account: "Core Long Equity",    trader: "S. Park" },
+      { id: "F-10298", time: "14:42:11", side: "SELL",  sym: "WMT",   qty:  120, price:  69.40, value:   8328, fees:  1.30, status: "partial",   account: "Core Long Equity",    trader: "R. Chen" },
+      { id: "F-10295", time: "14:31:30", side: "BUY",   sym: "GOOGL", qty:   60, price: 165.40, value:   9924, fees:  1.50, status: "filled",    account: "Core Long Equity",    trader: "S. Park" },
+      { id: "F-10293", time: "14:18:54", side: "SHORT", sym: "SPY",   qty:  100, price: 530.30, value:  53030, fees:  7.90, status: "filled",    account: "Hedge Overlay",       trader: "J. Kim" },
+      { id: "F-10290", time: "13:57:22", side: "BUY",   sym: "UNH",   qty:   40, price: 530.20, value:  21208, fees:  3.20, status: "filled",    account: "Core Long Equity",    trader: "R. Chen" },
+      { id: "F-10287", time: "13:42:08", side: "SELL",  sym: "JPM",   qty:  150, price: 197.40, value:  29610, fees:  4.40, status: "filled",    account: "Hedge Overlay",       trader: "J. Kim" },
+      { id: "F-10283", time: "13:18:51", side: "BUY",   sym: "MSFT",  qty:   80, price: 432.70, value:  34616, fees:  5.20, status: "filled",    account: "Core Long Equity",    trader: "S. Park" },
+      { id: "F-10281", time: "12:55:14", side: "BUY",   sym: "XOM",   qty:  200, price: 114.80, value:  22960, fees:  3.40, status: "cancelled", account: "Macro Discretionary", trader: "A. Vega" },
+      { id: "F-10279", time: "12:41:02", side: "SELL",  sym: "ABBV",  qty:   50, price: 169.90, value:   8495, fees:  1.30, status: "filled",    account: "Hedge Overlay",       trader: "J. Kim" },
+      { id: "F-10277", time: "12:24:33", side: "BUY",   sym: "SLB",   qty:  300, price:  48.10, value:  14430, fees:  2.20, status: "filled",    account: "Macro Discretionary", trader: "A. Vega" },
+      { id: "F-10275", time: "12:08:11", side: "SELL",  sym: "AAPL",  qty:   60, price: 191.20, value:  11472, fees:  1.70, status: "filled",    account: "Core Long Equity",    trader: "R. Chen" },
+      { id: "F-10272", time: "11:46:50", side: "BUY",   sym: "GS",    qty:   30, price: 478.80, value:  14364, fees:  2.20, status: "filled",    account: "Macro Discretionary", trader: "A. Vega" },
+      { id: "F-10270", time: "11:32:18", side: "SHORT", sym: "HD",    qty:   60, price: 351.40, value:  21084, fees:  3.20, status: "pending",   account: "Hedge Overlay",       trader: "J. Kim" },
+      { id: "F-10267", time: "11:11:04", side: "BUY",   sym: "ORCL",  qty:  100, price: 143.85, value:  14385, fees:  2.20, status: "filled",    account: "Core Long Equity",    trader: "S. Park" },
+    ];
+
+    // ----------- allocations & compliance data -----------
+    const SLEEVES = [
+      { id: "core",  name: "Core Long Equity",    target: 50.0, current: 53.2, nav: 21250000, dayPL:  142800, status: "over"  },
+      { id: "hedge", name: "Hedge Overlay",       target: 20.0, current: 19.5, nav:  7780000, dayPL:  -24300, status: "on"    },
+      { id: "macro", name: "Macro Discretionary", target: 15.0, current: 14.1, nav:  5630000, dayPL:   38420, status: "under" },
+      { id: "cash",  name: "Cash & Equivalents",  target: 10.0, current:  8.4, nav:  3360000, dayPL:     920, status: "under" },
+      { id: "spec",  name: "Special Situations",  target:  5.0, current:  4.8, nav:  1920000, dayPL:    9810, status: "on"    },
+    ];
+
+    const SECTOR_ALLOCATION = [
+      { sector: "Tech",         pct: 32.4 },
+      { sector: "Financials",   pct: 18.2 },
+      { sector: "Healthcare",   pct: 14.6 },
+      { sector: "Consumer",     pct: 12.8 },
+      { sector: "Energy",       pct:  9.4 },
+      { sector: "Index hedges", pct:  8.1 },
+      { sector: "Cash",         pct:  4.5 },
+    ];
+
+    const COMPLIANCE_RULES = [
+      { id: "C-201", rule: "Single position concentration", threshold: "≤ 25% NAV",         current: "27.1% (NVDA)",       status: "fail",    category: "Concentration", lastCheck: "15:42 ET" },
+      { id: "C-202", rule: "Sector concentration",          threshold: "≤ 35% NAV",         current: "32.4% (Tech)",       status: "pass",    category: "Concentration", lastCheck: "15:42 ET" },
+      { id: "C-203", rule: "Gross leverage",                threshold: "≤ 1.8x",            current: "1.42x",              status: "pass",    category: "Leverage",      lastCheck: "15:42 ET" },
+      { id: "C-204", rule: "Net exposure band",             threshold: "20% ≤ x ≤ 70%",     current: "62%",                status: "pass",    category: "Exposure",      lastCheck: "15:42 ET" },
+      { id: "C-205", rule: "Restricted list",               threshold: "0 positions",       current: "0",                  status: "pass",    category: "Restrictions",  lastCheck: "15:42 ET" },
+      { id: "C-206", rule: "Borrow availability",           threshold: "All shorts borrowed", current: "META, SPY OK",     status: "pass",    category: "Execution",     lastCheck: "15:38 ET" },
+      { id: "C-207", rule: "VaR (1-day, 95%)",              threshold: "≤ $250k",           current: "$182k",              status: "pass",    category: "Risk",          lastCheck: "15:30 ET" },
+      { id: "C-208", rule: "Liquidity vs 5-day ADV",        threshold: "Position ≤ 10% ADV", current: "All positions OK",  status: "pass",    category: "Liquidity",     lastCheck: "15:30 ET" },
+      { id: "C-209", rule: "Counterparty limits",           threshold: "≤ $5M per CP",      current: "$3.2M max",          status: "warning", category: "Counterparty",  lastCheck: "15:30 ET" },
+      { id: "C-210", rule: "Risk engine connectivity",      threshold: "Active",            current: "503 — stale 18m",    status: "fail",    category: "Operational",   lastCheck: "15:24 ET" },
     ];
 
     const sectorColor = (s) =>
@@ -202,7 +580,7 @@
         <div className="kpi-card">
           <div className="kpi-label">
             <Tooltip content={k.tip} size="sm" tipSide="top">
-              <span style={{cursor:"help", borderBottom:"1px dotted #cbd5e1"}}>{k.label}</span>
+              <span style={{cursor:"help", borderBottom:"1px dotted var(--ap-border)"}}>{k.label}</span>
             </Tooltip>
           </div>
           <div className="kpi-value">{k.value}</div>
@@ -218,7 +596,7 @@
           <div className="movers">
             <div>
               <div className="col-head">
-                <strong style={{color:"#15803d"}}>Gainers</strong>
+                <strong style={{color:"var(--ap-success-2)"}}>Gainers</strong>
                 <Tag type="success" size="sm" structure="borderless" label={`${GAINERS.length} symbols`} />
               </div>
               {GAINERS.map(r => (
@@ -230,7 +608,7 @@
             </div>
             <div>
               <div className="col-head">
-                <strong style={{color:"#b91c1c"}}>Losers</strong>
+                <strong style={{color:"var(--ap-error-2)"}}>Losers</strong>
                 <Tag type="error" size="sm" structure="borderless" label={`${LOSERS.length} symbols`} />
               </div>
               {LOSERS.map(r => (
@@ -245,51 +623,588 @@
       );
     }
 
+    // Sector palette — DS-aligned tones (low-saturation tints over Roboto)
+    const SECTOR_BG = {
+      Tech:        "#e5eef5",
+      Consumer:    "#e3eee6",
+      Financials:  "#ece4ee",
+      Energy:      "#f7e6d1",
+      Healthcare:  "#dff0db",
+      Index:       "#ececec",
+    };
+    const SECTOR_FG = {
+      Tech:        "#024870",
+      Consumer:    "#3f7b25",
+      Financials:  "#5f4a73",
+      Energy:      "#ce7309",
+      Healthcare:  "#498e2b",
+      Index:       "#4a4a4a",
+    };
+
     function PositionsTable() {
-      const [selected, setSelected] = useState({});
-      const allChecked = POSITIONS.every(p => selected[p.sym]);
-      const toggleAll = (v) => setSelected(POSITIONS.reduce((acc, p) => (acc[p.sym] = !!v, acc), {}));
+      const toast = useToast();
+
+      const columnDefs = useMemo(() => [
+        {
+          headerCheckboxSelection: true,
+          checkboxSelection: true,
+          width: 42, pinned: "left", suppressMovable: true, resizable: false, sortable: false, filter: false,
+        },
+        {
+          field: "sym", headerName: "Symbol", pinned: "left", width: 110,
+          tooltipValueGetter: (p) => `Last fill 15:58 ET · ${p.data.qty > 0 ? "long" : "short"} · sector ${p.data.sector}`,
+          cellStyle: { fontWeight: 700, fontVariantNumeric: "tabular-nums", letterSpacing: ".02em" },
+        },
+        {
+          field: "sector", headerName: "Sector", width: 130,
+          cellRenderer: (p) => {
+            const s = document.createElement("span");
+            s.className = "sector-chip";
+            s.textContent = p.value;
+            s.style.background = SECTOR_BG[p.value] || "#ececec";
+            s.style.color      = SECTOR_FG[p.value] || "#4a4a4a";
+            return s;
+          },
+        },
+        { field: "qty",  headerName: "Qty",       type: "rightAligned", width: 100, valueFormatter: (p) => p.value.toLocaleString() },
+        { field: "avg",  headerName: "Avg",       type: "rightAligned", width: 100, valueFormatter: (p) => p.value.toFixed(2) },
+        { field: "mark", headerName: "Mark",      type: "rightAligned", width: 100, valueFormatter: (p) => p.value.toFixed(2) },
+        { field: "mv",   headerName: "Mkt value", type: "rightAligned", width: 130, valueFormatter: (p) => fmtUSD(p.value) },
+        {
+          field: "pnl", headerName: "P&L", type: "rightAligned", flex: 1, minWidth: 140,
+          cellRenderer: (p) => {
+            const wrap = document.createElement("div");
+            wrap.style.cssText = "display:flex;flex-direction:column;align-items:flex-end;line-height:1.2";
+            const top = document.createElement("span");
+            top.className = p.value >= 0 ? "pl-pos" : "pl-neg";
+            top.textContent = fmtPnL(p.value);
+            const sub = document.createElement("span");
+            sub.className = "pl-sub";
+            sub.textContent = (p.data.pct >= 0 ? "+" : "") + p.data.pct.toFixed(2) + "%";
+            wrap.append(top, sub);
+            return wrap;
+          },
+        },
+        {
+          headerName: "", width: 80, sortable: false, filter: false, resizable: false, suppressMovable: true,
+          cellRenderer: (p) => {
+            const btn = document.createElement("button");
+            btn.className = "view-link";
+            btn.textContent = "View";
+            btn.addEventListener("click", () => toast.success(`Open detail · ${p.data.sym}`));
+            return btn;
+          },
+        },
+      ], [toast]);
+
       return (
         <div className="panel">
           <h2><Icon icon="ap-icon-financial" /> Open positions</h2>
-          <table className="book">
-            <thead>
-              <tr>
-                <th className="col-sel"><Checkbox label="" checked={allChecked} onChange={toggleAll} /></th>
-                <th className="col-sym">Symbol</th>
-                <th className="col-sector">Sector</th>
-                <th className="num">Qty</th>
-                <th className="num">Avg</th>
-                <th className="num">Mark</th>
-                <th className="num">Mkt value</th>
-                <th className="num">P&L</th>
-                <th className="col-action"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {POSITIONS.map(p => (
-                <tr key={p.sym}>
-                  <td data-label="" className="col-sel"><Checkbox label="" checked={!!selected[p.sym]} onChange={(v) => setSelected(s => ({...s, [p.sym]: !!v}))} /></td>
-                  <td data-label="Symbol" className="col-sym">
-                    <Tooltip content={`Last fill 15:58 ET · ${p.qty > 0 ? "long" : "short"} · sector ${p.sector}`} size="sm" tipSide="right">
-                      <span className="sym">{p.sym}</span>
-                    </Tooltip>
-                  </td>
-                  <td data-label="Sector" className="col-sector"><Tag type="basic" size="sm" structure="border" color={sectorColor(p.sector)} label={p.sector} /></td>
-                  <td data-label="Qty" className="num">{p.qty.toLocaleString()}</td>
-                  <td data-label="Avg" className="num">{p.avg.toFixed(2)}</td>
-                  <td data-label="Mark" className="num">{p.mark.toFixed(2)}</td>
-                  <td data-label="Mkt value" className="num">{fmtUSD(p.mv)}</td>
-                  <td data-label="P&L" className={"num " + (p.pnl >= 0 ? "pl-pos" : "pl-neg")}>
-                    {fmtPnL(p.pnl)}
-                    <span className="pl-sub">{p.pct >= 0 ? "+" : ""}{p.pct.toFixed(2)}%</span>
-                  </td>
-                  <td data-label="" className="col-action"><Ghost variant="default" noIcon>View</Ghost></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <AgGrid
+            rowData={POSITIONS}
+            columnDefs={columnDefs}
+            height={POSITIONS.length * 44 + 48}
+            rowHeight={44}
+            headerHeight={36}
+            gridOptions={{ rowSelection: "multiple", suppressRowClickSelection: true, suppressCellFocus: true }}
+          />
         </div>
+      );
+    }
+
+    // ----------- Positions tab (full view) -----------
+    function PositionsSummary({ rows }) {
+      const longs   = rows.filter(r => r.qty > 0);
+      const shorts  = rows.filter(r => r.qty < 0);
+      const grossMV = rows.reduce((a, r) => a + Math.abs(r.mv),  0);
+      const netMV   = rows.reduce((a, r) => a + r.mv,            0);
+      const totalPL = rows.reduce((a, r) => a + r.pnl,           0);
+      const winners = rows.filter(r => r.pnl > 0).length;
+      const losers  = rows.filter(r => r.pnl < 0).length;
+
+      return (
+        <div className="summary-strip">
+          <div className="summary-card">
+            <div className="summary-label">Long / Short</div>
+            <div className="summary-value">{longs.length} <span style={{color:"var(--ap-text-soft)", fontWeight:500}}>·</span> {shorts.length}</div>
+            <div className="summary-sub">{rows.length} open positions</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Gross exposure</div>
+            <div className="summary-value">{fmtUSD(grossMV)}</div>
+            <div className="summary-sub">Net {fmtUSD(netMV)}</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Open P&L</div>
+            <div className={`summary-value ${totalPL >= 0 ? "pl-pos" : "pl-neg"}`}>{fmtPnL(totalPL)}</div>
+            <div className="summary-sub">{winners} winners · {losers} losers</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Largest position</div>
+            <div className="summary-value">{rows.slice().sort((a,b)=>Math.abs(b.mv)-Math.abs(a.mv))[0]?.sym ?? "—"}</div>
+            <div className="summary-sub">
+              {(() => {
+                const top = rows.slice().sort((a,b)=>Math.abs(b.mv)-Math.abs(a.mv))[0];
+                if (!top || !grossMV) return "—";
+                return `${((Math.abs(top.mv) / grossMV) * 100).toFixed(1)}% of gross`;
+              })()}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function PositionsView() {
+      const toast = useToast();
+      const [groupBySector, setGroupBySector] = useState(false);
+      const [longsOnly, setLongsOnly]         = useState(false);
+
+      const rows = useMemo(() => {
+        let r = longsOnly ? POSITIONS_FULL.filter(p => p.qty > 0) : POSITIONS_FULL.slice();
+        if (groupBySector) r = r.slice().sort((a, b) => a.sector.localeCompare(b.sector));
+        return r;
+      }, [longsOnly, groupBySector]);
+
+      const columnDefs = useMemo(() => [
+        {
+          headerCheckboxSelection: true,
+          checkboxSelection: true,
+          width: 42, pinned: "left", suppressMovable: true, resizable: false, sortable: false, filter: false,
+        },
+        {
+          field: "sym", headerName: "Symbol", pinned: "left", width: 100,
+          tooltipValueGetter: (p) => `${p.data.qty > 0 ? "Long" : "Short"} · ${p.data.account}`,
+          cellStyle: { fontWeight: 700, fontVariantNumeric: "tabular-nums", letterSpacing: ".02em" },
+        },
+        {
+          field: "sector", headerName: "Sector", width: 130,
+          cellRenderer: (p) => {
+            if (!p.value) return "";
+            const s = document.createElement("span");
+            s.className = "sector-chip";
+            s.textContent = p.value;
+            s.style.background = SECTOR_BG[p.value] || "#ececec";
+            s.style.color      = SECTOR_FG[p.value] || "#4a4a4a";
+            return s;
+          },
+        },
+        { field: "account", headerName: "Account", width: 170 },
+        { field: "qty",  headerName: "Qty",       type: "rightAligned", width: 100, valueFormatter: (p) => p.value.toLocaleString() },
+        { field: "avg",  headerName: "Avg",       type: "rightAligned", width: 100, valueFormatter: (p) => p.value.toFixed(2) },
+        { field: "mark", headerName: "Mark",      type: "rightAligned", width: 100, valueFormatter: (p) => p.value.toFixed(2) },
+        { field: "mv",   headerName: "Mkt value", type: "rightAligned", width: 130, valueFormatter: (p) => fmtUSD(p.value) },
+        {
+          field: "pnl", headerName: "P&L", type: "rightAligned", flex: 1, minWidth: 140,
+          cellRenderer: (p) => {
+            const wrap = document.createElement("div");
+            wrap.style.cssText = "display:flex;flex-direction:column;align-items:flex-end;line-height:1.2";
+            const top = document.createElement("span");
+            top.className = p.value >= 0 ? "pl-pos" : "pl-neg";
+            top.textContent = fmtPnL(p.value);
+            const sub = document.createElement("span");
+            sub.className = "pl-sub";
+            sub.textContent = (p.data.pct >= 0 ? "+" : "") + p.data.pct.toFixed(2) + "%";
+            wrap.append(top, sub);
+            return wrap;
+          },
+        },
+        {
+          headerName: "", width: 80, sortable: false, filter: false, resizable: false, suppressMovable: true,
+          cellRenderer: (p) => {
+            const btn = document.createElement("button");
+            btn.className = "view-link";
+            btn.textContent = "View";
+            btn.addEventListener("click", () => toast.success(`Open detail · ${p.data.sym}`));
+            return btn;
+          },
+        },
+      ], [toast, groupBySector]);
+
+      return (
+        <>
+          <PositionsSummary rows={rows} />
+
+          <div className="panel">
+            <div className="panel-head">
+              <h2><Icon icon="ap-icon-list" /> Open positions</h2>
+              <div className="table-controls">
+                <Toggle label="Longs only"      checked={longsOnly}     onChange={(v) => setLongsOnly(!!v)}     labelPosition="right" />
+                <Toggle label="Group by sector" checked={groupBySector} onChange={(v) => setGroupBySector(!!v)} labelPosition="right" />
+                <Ghost variant="default" icon="ap-icon-add" onClick={() => toast.success("New position dialog (stub)")}>
+                  New position
+                </Ghost>
+              </div>
+            </div>
+            <AgGrid
+              rowData={rows}
+              columnDefs={columnDefs}
+              height={Math.min(rows.length, 12) * 44 + 80}
+              rowHeight={44}
+              headerHeight={36}
+              gridOptions={{
+                rowSelection: "multiple",
+                suppressRowClickSelection: true,
+                suppressCellFocus: true,
+              }}
+            />
+          </div>
+        </>
+      );
+    }
+
+    // ----------- Trades tab (blotter) -----------
+    function TradesSummary({ rows }) {
+      const filled    = rows.filter(r => r.status === "filled");
+      const partial   = rows.filter(r => r.status === "partial").length;
+      const pending   = rows.filter(r => r.status === "pending").length;
+      const cancelled = rows.filter(r => r.status === "cancelled").length;
+      const volume    = filled.reduce((a, r) => a + r.value, 0);
+      const fees      = filled.reduce((a, r) => a + r.fees,  0);
+      const avgFill   = filled.length ? volume / filled.length : 0;
+
+      return (
+        <div className="summary-strip">
+          <div className="summary-card">
+            <div className="summary-label">Fills today</div>
+            <div className="summary-value">{filled.length}</div>
+            <div className="summary-sub">{partial} partial · {pending} pending · {cancelled} cancelled</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Notional volume</div>
+            <div className="summary-value">{fmtUSD(volume)}</div>
+            <div className="summary-sub">Filled value</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Commissions</div>
+            <div className="summary-value">{fmtUSD(fees)}</div>
+            <div className="summary-sub">{((fees / Math.max(volume, 1)) * 10000).toFixed(1)} bps avg</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Avg fill size</div>
+            <div className="summary-value">{fmtUSD(avgFill)}</div>
+            <div className="summary-sub">Across {filled.length} fills</div>
+          </div>
+        </div>
+      );
+    }
+
+    function TradesBlotter() {
+      const toast = useToast();
+      const [sideFilter, setSideFilter] = useState([]);
+
+      const rows = useMemo(
+        () => sideFilter.length === 0 ? TRADES : TRADES.filter(t => sideFilter.includes(t.side.toLowerCase())),
+        [sideFilter]
+      );
+
+      const columnDefs = useMemo(() => [
+        {
+          field: "time", headerName: "Time", pinned: "left", width: 100,
+          cellStyle: { fontVariantNumeric: "tabular-nums", color: "#4a4a4a" },
+        },
+        {
+          field: "side", headerName: "Side", width: 90,
+          cellRenderer: (p) => {
+            const s = document.createElement("span");
+            s.className = "side-chip side-" + p.value.toLowerCase();
+            s.textContent = p.value;
+            return s;
+          },
+        },
+        {
+          field: "sym", headerName: "Symbol", width: 100,
+          cellStyle: { fontWeight: 700, fontVariantNumeric: "tabular-nums", letterSpacing: ".02em" },
+        },
+        { field: "qty",   headerName: "Qty",   type: "rightAligned", width: 90,  valueFormatter: (p) => p.value.toLocaleString() },
+        { field: "price", headerName: "Price", type: "rightAligned", width: 100, valueFormatter: (p) => p.value.toFixed(2) },
+        { field: "value", headerName: "Value", type: "rightAligned", width: 120, valueFormatter: (p) => fmtUSD(p.value) },
+        { field: "fees",  headerName: "Fees",  type: "rightAligned", width: 80,
+          valueFormatter: (p) => "$" + p.value.toFixed(2),
+          cellStyle: { color: "#727272" },
+        },
+        {
+          field: "status", headerName: "Status", width: 120,
+          cellRenderer: (p) => {
+            const s = document.createElement("span");
+            s.className = "status-dot status-" + p.value;
+            s.textContent = p.value.charAt(0).toUpperCase() + p.value.slice(1);
+            return s;
+          },
+        },
+        { field: "account", headerName: "Account", width: 170 },
+        { field: "trader",  headerName: "Trader",  flex: 1, minWidth: 110 },
+        {
+          headerName: "", width: 80, sortable: false, filter: false, resizable: false, suppressMovable: true,
+          cellRenderer: (p) => {
+            const btn = document.createElement("button");
+            btn.className = "view-link";
+            btn.textContent = "Detail";
+            btn.addEventListener("click", () => toast.success(`Fill ${p.data.id} · ${p.data.sym}`));
+            return btn;
+          },
+        },
+      ], [toast]);
+
+      return (
+        <>
+          <TradesSummary rows={TRADES} />
+
+          <div className="panel">
+            <div className="panel-head">
+              <h2><Icon icon="ap-icon-document" /> Trade blotter</h2>
+              <div className="table-controls">
+                <div style={{minWidth: 220}}>
+                  <Dropdown
+                    label="Side"
+                    options={[
+                      { value: "buy",   label: "Buy"   },
+                      { value: "sell",  label: "Sell"  },
+                      { value: "short", label: "Short" },
+                      { value: "cover", label: "Cover" },
+                    ]}
+                    value={sideFilter}
+                    onChange={setSideFilter}
+                    placeholder="All sides"
+                    multiSelect
+                  />
+                </div>
+                <Ghost variant="default" icon="ap-icon-upload" onClick={() => toast.success("Exporting blotter…")}>
+                  Export blotter
+                </Ghost>
+              </div>
+            </div>
+            {rows.length === 0 ? (
+              <div className="empty-state">
+                <Illustration level={2} category="empty" name="search" size={140} />
+                <h3>No fills match this filter</h3>
+                <p>Clear the side filter to see all {TRADES.length} fills.</p>
+                <div className="cta">
+                  <Button type="secondary" size="md" icon="ap-icon-sync" onClick={() => setSideFilter([])}>
+                    Reset filters
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <AgGrid
+                rowData={rows}
+                columnDefs={columnDefs}
+                height={Math.min(rows.length, 10) * 40 + 80}
+                rowHeight={40}
+                headerHeight={36}
+                gridOptions={{ suppressCellFocus: true }}
+              />
+            )}
+          </div>
+        </>
+      );
+    }
+
+    // ----------- Allocations tab -----------
+    function AllocationsSummary({ rows }) {
+      const nav        = rows.reduce((a, r) => a + r.nav, 0);
+      const drifts     = rows.map(r => r.current - r.target);
+      const avgAbsDrift= drifts.reduce((a, d) => a + Math.abs(d), 0) / Math.max(rows.length, 1);
+      const top        = rows.slice().sort((a, b) => (b.current - b.target) - (a.current - a.target))[0];
+
+      return (
+        <div className="summary-strip">
+          <div className="summary-card">
+            <div className="summary-label">Net asset value</div>
+            <div className="summary-value">{fmtUSD(nav)}</div>
+            <div className="summary-sub">EOD mark-to-market</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Strategy sleeves</div>
+            <div className="summary-value">{rows.length}</div>
+            <div className="summary-sub">{rows.filter(r => r.status === "on").length} on target</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Avg drift</div>
+            <div className="summary-value">±{avgAbsDrift.toFixed(2)} pp</div>
+            <div className="summary-sub">vs target weights</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Largest overweight</div>
+            <div className="summary-value">{top ? top.name.split(" ")[0] : "—"}</div>
+            <div className="summary-sub">{top ? `+${(top.current - top.target).toFixed(1)} pp vs target` : "—"}</div>
+          </div>
+        </div>
+      );
+    }
+
+    function AllocationRow({ s }) {
+      const drift     = s.current - s.target;
+      const fillMod   = s.status === "over" ? "alloc-bar__fill--over" : s.status === "under" ? "alloc-bar__fill--under" : "";
+      const tagMod    = s.status === "over" ? "alloc-tag--over"       : s.status === "under" ? "alloc-tag--under"        : "alloc-tag--on";
+      const tagLabel  = s.status === "over" ? "Overweight"            : s.status === "under" ? "Underweight"             : "On target";
+      return (
+        <div className="alloc-row">
+          <div>
+            <div className="alloc-row__name">{s.name}</div>
+            <div className="alloc-row__sub">{fmtUSD(s.nav)} · target {s.target.toFixed(1)}%</div>
+          </div>
+          <div className="alloc-bar" title={`Current ${s.current}% · target ${s.target}%`}>
+            <div className={`alloc-bar__fill ${fillMod}`} style={{width: `${Math.min(s.current, 100)}%`}} />
+            <div className="alloc-bar__target" style={{left: `calc(${s.target}% - 1px)`}} />
+          </div>
+          <div className="alloc-row__num">{s.current.toFixed(1)}%</div>
+          <div className={`alloc-row__num ${drift >= 0 ? "pl-pos" : "pl-neg"}`}>{(drift >= 0 ? "+" : "") + drift.toFixed(1)} pp</div>
+          <div className={`alloc-row__num ${s.dayPL >= 0 ? "pl-pos" : "pl-neg"}`}>{fmtPnL(s.dayPL)}</div>
+          <div><span className={`alloc-tag ${tagMod}`}>{tagLabel}</span></div>
+        </div>
+      );
+    }
+
+    function AllocationsView() {
+      const toast = useToast();
+      const maxSectorPct = Math.max(...SECTOR_ALLOCATION.map(s => s.pct));
+
+      return (
+        <>
+          <AllocationsSummary rows={SLEEVES} />
+
+          <div className="panel">
+            <div className="panel-head">
+              <h2><Icon icon="ap-icon-bar" /> Strategy sleeves</h2>
+              <div className="table-controls">
+                <Ghost variant="default" icon="ap-icon-add" onClick={() => toast.success("Rebalance plan (stub)")}>
+                  Rebalance
+                </Ghost>
+              </div>
+            </div>
+            <div className="alloc-list">
+              {SLEEVES.map(s => <AllocationRow key={s.id} s={s} />)}
+            </div>
+          </div>
+
+          <div className="panel">
+            <div className="panel-head">
+              <h2><Icon icon="ap-icon-bar" /> Sector exposure</h2>
+              <span style={{fontSize: 12, color: "var(--ap-text-muted)"}}>{SECTOR_ALLOCATION.length} sectors</span>
+            </div>
+            <div className="sector-list">
+              {SECTOR_ALLOCATION.map(row => (
+                <div className="sector-row" key={row.sector}>
+                  <div>{row.sector}</div>
+                  <div className="sector-row__bar">
+                    <div className="sector-row__fill" style={{width: `${(row.pct / maxSectorPct) * 100}%`}} />
+                  </div>
+                  <div className="sector-row__pct">{row.pct.toFixed(1)}%</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    // ----------- Compliance tab -----------
+    function ComplianceSummary({ rows }) {
+      const pass    = rows.filter(r => r.status === "pass").length;
+      const warning = rows.filter(r => r.status === "warning").length;
+      const fail    = rows.filter(r => r.status === "fail").length;
+      return (
+        <div className="summary-strip">
+          <div className="summary-card">
+            <div className="summary-label">Active checks</div>
+            <div className="summary-value">{rows.length}</div>
+            <div className="summary-sub">Across {new Set(rows.map(r => r.category)).size} categories</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Passing</div>
+            <div className="summary-value pl-pos">{pass}</div>
+            <div className="summary-sub">Within policy</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Warnings</div>
+            <div className="summary-value" style={{color: "var(--ap-warning)"}}>{warning}</div>
+            <div className="summary-sub">Approaching limits</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Failures</div>
+            <div className="summary-value pl-neg">{fail}</div>
+            <div className="summary-sub">Require attention</div>
+          </div>
+        </div>
+      );
+    }
+
+    function ComplianceView() {
+      const toast = useToast();
+      const [showOnlyIssues, setShowOnlyIssues] = useState(false);
+      const failed = COMPLIANCE_RULES.filter(r => r.status === "fail");
+
+      const rows = useMemo(
+        () => showOnlyIssues ? COMPLIANCE_RULES.filter(r => r.status !== "pass") : COMPLIANCE_RULES,
+        [showOnlyIssues]
+      );
+
+      const columnDefs = useMemo(() => [
+        { field: "id",        headerName: "ID",        pinned: "left", width: 90,
+          cellStyle: { fontVariantNumeric: "tabular-nums", color: "#4a4a4a" } },
+        { field: "rule",      headerName: "Rule",      flex: 1.4, minWidth: 220,
+          cellStyle: { fontWeight: 600, color: "#28292c" } },
+        { field: "category",  headerName: "Category",  width: 140 },
+        { field: "threshold", headerName: "Threshold", width: 170,
+          cellStyle: { color: "#727272" } },
+        { field: "current",   headerName: "Current",   flex: 1, minWidth: 180,
+          cellStyle: { fontVariantNumeric: "tabular-nums", color: "#28292c" } },
+        {
+          field: "status", headerName: "Status", width: 110,
+          cellRenderer: (p) => {
+            const s = document.createElement("span");
+            s.className = "cmp-tag cmp-tag--" + p.value;
+            s.textContent = p.value.charAt(0).toUpperCase() + p.value.slice(1);
+            return s;
+          },
+        },
+        { field: "lastCheck", headerName: "Last check", width: 110,
+          cellStyle: { fontVariantNumeric: "tabular-nums", color: "#727272" } },
+        {
+          headerName: "", width: 90, sortable: false, filter: false, resizable: false, suppressMovable: true,
+          cellRenderer: (p) => {
+            const btn = document.createElement("button");
+            btn.className = "view-link";
+            btn.textContent = "Review";
+            btn.addEventListener("click", () => toast.success(`Open ${p.data.id} · ${p.data.rule}`));
+            return btn;
+          },
+        },
+      ], [toast]);
+
+      return (
+        <>
+          <ComplianceSummary rows={COMPLIANCE_RULES} />
+
+          {failed.length > 0 && (
+            <Banner
+              type="error"
+              size="md"
+              isFullWidth
+              content={`${failed.length} compliance ${failed.length === 1 ? "failure" : "failures"} require attention — ${failed.map(f => f.id).join(", ")}.`}
+            />
+          )}
+
+          <div className="panel">
+            <div className="panel-head">
+              <h2><Icon icon="ap-icon-alert" /> Active compliance rules</h2>
+              <div className="table-controls">
+                <Toggle label="Only issues" checked={showOnlyIssues} onChange={(v) => setShowOnlyIssues(!!v)} labelPosition="right" />
+                <Ghost variant="default" icon="ap-icon-sync" onClick={() => toast.success("Re-running compliance checks…")}>
+                  Re-run all
+                </Ghost>
+              </div>
+            </div>
+            <AgGrid
+              rowData={rows}
+              columnDefs={columnDefs}
+              height={Math.min(rows.length, 10) * 40 + 80}
+              rowHeight={40}
+              headerHeight={36}
+              gridOptions={{ suppressCellFocus: true }}
+            />
+          </div>
+        </>
       );
     }
 
@@ -371,7 +1286,7 @@
                 helpText="Trigger a toast when daily P&L crosses this value."
               />
               <div>
-                <div style={{fontSize:11, color:"#64748b", marginBottom:8, fontWeight:600, textTransform:"uppercase", letterSpacing:".06em"}}>Refresh cadence</div>
+                <div style={{fontSize:11, color:"var(--ap-text-muted)", marginBottom:8, fontWeight:600, textTransform:"uppercase", letterSpacing:".06em"}}>Refresh cadence</div>
                 <RadioGroup value={refresh} onChange={setRefresh} orientation="vertical" ariaLabel="Refresh cadence">
                   <Radio label="End of day only" value="eod" />
                   <Radio label="Every 15 minutes" value="15m" />
@@ -474,7 +1389,7 @@
                 content: (
                   <div style={{padding:12, minWidth:240}}>
                     <strong style={{fontSize:13}}>3 unread alerts</strong>
-                    <div style={{fontSize:12, color:"#64748b", marginTop:4}}>
+                    <div style={{fontSize:12, color:"var(--ap-text-muted)", marginTop:4}}>
                       NVDA concentration · Vol rebalance · Risk engine 503
                     </div>
                   </div>
@@ -485,7 +1400,7 @@
                 content: (
                   <div style={{padding:12, minWidth:220}}>
                     <strong>Julian Benitez</strong>
-                    <div style={{fontSize:12, color:"#64748b"}}>jbenitez@alixpartners.com</div>
+                    <div style={{fontSize:12, color:"var(--ap-text-muted)"}}>jbenitez@alixpartners.com</div>
                     <div style={{marginTop:8}}>
                       <Ghost variant="cancel" icon="ap-icon-logout">Sign out</Ghost>
                     </div>
@@ -496,27 +1411,22 @@
           />
 
           <div className="page-wrap">
-            <div style={{height:16}} />
-            <Banner
-              type="info"
-              size="md"
-              isFullWidth
-              icon="ap-icon-clock"
-              content="Market closed at 4:00 PM ET · End-of-day reconciliation completed at 4:18 PM."
-            />
-
-            <div className="title-row">
-              <div>
+            <header className="page-header">
+              <div className="page-header__title">
                 <h1>End-of-day snapshot</h1>
-                <p className="sub">Trading day · Thursday, May 14, 2026</p>
+                <p className="sub">
+                  Thursday, May 14, 2026
+                  <span className="sep">·</span>
+                  <span className="status-pill">Market closed at 4:00 PM ET</span>
+                </p>
               </div>
-              <Datepicker
-                label="Date"
-                value={date}
-                onChange={(d) => d && setDate(d)}
-                dateFormat="Mon DD, YYYY"
-              />
-              <div className="export-cell">
+              <div className="page-header__actions">
+                <Datepicker
+                  label=""
+                  value={date}
+                  onChange={(d) => d && setDate(d)}
+                  dateFormat="Mon DD, YYYY"
+                />
                 <SplitButton
                   type="primary"
                   trigger="split"
@@ -525,40 +1435,7 @@
                   actionOptions={EXPORT_ACTIONS}
                 />
               </div>
-            </div>
-
-            <div className="filter-row">
-              <Search
-                value={search}
-                onChange={setSearch}
-                placeholder="Find symbol or strategy"
-                label="Search"
-              />
-              <Dropdown
-                label="Account"
-                options={ACCOUNT_OPTIONS}
-                value={accounts}
-                onChange={setAccounts}
-                placeholder="All accounts"
-              />
-              <Dropdown
-                label="Asset class"
-                options={ASSET_CLASS_OPTIONS}
-                value={classes}
-                onChange={setClasses}
-                placeholder="All asset classes"
-                multiSelect
-                searchable
-              />
-              <div className="toggle-cell">
-                <Toggle
-                  label="Closed only"
-                  checked={closedOnly}
-                  onChange={(v) => setClosedOnly(!!v)}
-                  labelPosition="right"
-                />
-              </div>
-            </div>
+            </header>
 
             <div className="kpi-grid">
               {KPIS.map(k => <KPI key={k.id} k={k} />)}
@@ -566,21 +1443,54 @@
 
             <TabNavigation align="left">
               <Tab label="Overview"    active={tab === "overview"}    onClick={() => setTab("overview")} />
-              <Tab label="Positions"   numberCount={24}  active={tab === "positions"}   onClick={() => setTab("positions")} />
-              <Tab label="Trades"      numberCount={142} active={tab === "trades"}      onClick={() => setTab("trades")} />
-              <Tab label="Allocations" active={tab === "allocations"} onClick={() => setTab("allocations")} />
-              <Tab label="Compliance"  hasError numberCount={2} active={tab === "compliance"} onClick={() => setTab("compliance")} />
+              <Tab label="Positions"   numberCount={POSITIONS_FULL.length} active={tab === "positions"}   onClick={() => setTab("positions")} />
+              <Tab label="Trades"      numberCount={TRADES.length}         active={tab === "trades"}      onClick={() => setTab("trades")} />
+              <Tab label="Allocations" numberCount={SLEEVES.length} active={tab === "allocations"} onClick={() => setTab("allocations")} />
+              <Tab label="Compliance"  hasError numberCount={COMPLIANCE_RULES.filter(r => r.status === "fail").length} active={tab === "compliance"} onClick={() => setTab("compliance")} />
             </TabNavigation>
 
-            <div style={{height:16}} />
+            {(tab === "overview" || tab === "positions" || tab === "trades") && (
+              <div className="filter-row">
+                <Search
+                  value={search}
+                  onChange={setSearch}
+                  placeholder="Find symbol or strategy"
+                  label="Search"
+                />
+                <Dropdown
+                  label="Account"
+                  options={ACCOUNT_OPTIONS}
+                  value={accounts}
+                  onChange={setAccounts}
+                  placeholder="All accounts"
+                />
+                <Dropdown
+                  label="Asset class"
+                  options={ASSET_CLASS_OPTIONS}
+                  value={classes}
+                  onChange={setClasses}
+                  placeholder="All asset classes"
+                  multiSelect
+                  searchable
+                />
+                <div className="toggle-cell">
+                  <Toggle
+                    label="Closed only"
+                    checked={closedOnly}
+                    onChange={(v) => setClosedOnly(!!v)}
+                    labelPosition="right"
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="main-grid">
               <div className="panel-stack">
                 {tab === "overview"    && <><MoversPanel /><PositionsTable /></>}
-                {tab === "positions"   && <PositionsTable />}
-                {tab === "trades"      && <LoadingTab />}
-                {tab === "allocations" && <EmptyTab />}
-                {tab === "compliance"  && <ErrorTab />}
+                {tab === "positions"   && <PositionsView />}
+                {tab === "trades"      && <TradesBlotter />}
+                {tab === "allocations" && <AllocationsView />}
+                {tab === "compliance"  && <ComplianceView />}
               </div>
               <SidebarPanel />
             </div>
@@ -589,11 +1499,30 @@
       );
     }
 
+    class Boundary extends React.Component {
+      constructor(props) { super(props); this.state = { err: null }; }
+      static getDerivedStateFromError(err) { return { err }; }
+      componentDidCatch(err, info) { console.error("Boundary caught:", err, info); }
+      render() {
+        if (this.state.err) {
+          return (
+            <div style={{margin:"24px", padding:"16px", background:"#fef2f2", border:"1px solid var(--ap-error)", borderRadius:"var(--ap-radius)", color:"var(--ap-error-2)", fontFamily:"var(--ap-font)"}}>
+              <strong>Render error:</strong>
+              <pre style={{whiteSpace:"pre-wrap", margin:"8px 0 0"}}>{this.state.err.message}{"\n\n"}{this.state.err.stack}</pre>
+            </div>
+          );
+        }
+        return this.props.children;
+      }
+    }
+
     function App() {
       return (
-        <ToastProvider maxSnack={3} autoHideDuration={4000} anchorOrigin={{ vertical: "bottom", horizontal: "right" }}>
-          <Dashboard />
-        </ToastProvider>
+        <Boundary>
+          <ToastProvider maxSnack={3} autoHideDuration={4000} anchorOrigin={{ vertical: "bottom", horizontal: "right" }}>
+            <Dashboard />
+          </ToastProvider>
+        </Boundary>
       );
     }
 

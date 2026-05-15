@@ -67,13 +67,28 @@ The dashboard does not yet exist in code. The only relevant existing artifact is
         {/* tab-specific content */}
         <MoversPanel>  (Overview)
           <Tag success | error /> per gainer/loser
-        <PositionsTable>
+        <PositionsTable>  (Overview)
           <Checkbox /> per row
           <Tooltip><Tag basic /></Tooltip> for sector
           <Ghost variant="default">View</Ghost> for drilldown
-        <LoadingTab>     (Trades)   <Spinner size="md" />
-        <EmptyTab>       (Allocs)   <Illustration level=2 category="empty" name="search" /> + <Button>
-        <ErrorTab>       (Compl.)   <Banner type="error" /> + <Button>Retry + <Ghost>
+        <PositionsView>  (Positions)
+          <PositionsSummary /> — 4 mini KPI cards: long/short, gross, P&L, top concentration
+          <Toggle "Longs only" /> + <Toggle "Group by sector" /> + <Ghost "New position" />
+          <AgGrid /> over POSITIONS_FULL with rowGroup on sector when toggled on
+        <TradesBlotter>  (Trades)
+          <TradesSummary /> — 4 mini KPI cards: fills, notional, commissions, avg fill
+          <Dropdown multiSelect "Side" /> + <Ghost "Export blotter" />
+          <AgGrid /> over TRADES with side & status chip renderers
+          Empty branch when filter clears all rows → <Illustration empty /> + reset Button
+        <AllocationsView>  (Allocations)
+          <AllocationsSummary /> — 4 mini cards: NAV, sleeve count, avg drift, largest overweight
+          Strategy sleeves panel — rows with name+NAV, target-vs-current bar (target marker), drift, P&L, status tag
+          Sector exposure panel — horizontal bars sorted desc with percentage labels
+        <ComplianceView>   (Compliance)
+          <ComplianceSummary /> — 4 mini cards: active checks, passing, warnings, failures
+          <Banner type="error" /> — surfaces when any rule status === "fail" (list of failing IDs)
+          Active rules AG Grid — ID, Rule, Category, Threshold, Current, Status chip, Last check, Review link
+          <Toggle "Only issues" /> + <Ghost "Re-run all" /> in the panel-head
       </section>
 
       <aside className="sidebar">
@@ -107,9 +122,10 @@ Every data-bearing component must define all four states. The prototype shows th
 | KPI cards (`KPI`) | Skeleton block sized like the value (≥3 shimmer rectangles in the row) | "—" with a hint like "No trades today" | Tag in `error` with retry tooltip | Number + delta Tag |
 | Top movers (`MoversPanel`) | Skeleton rows ×4 per column | "Markets closed flat — no movers" | `Banner type="error"` inside the panel | Two columns of rows |
 | Positions table | Skeleton rows ×6 | "No open positions for this account" + `Button` "New trade" | Inline `Banner type="error"` above the table with retry | Rows with Checkbox / Tooltip / Tag / Ghost |
-| Trades blotter (`Trades` tab) | `<Spinner size="md" color="dark" />` + "Loading trade blotter…" *(shown in prototype)* | `<Illustration empty/>` + "No fills today" | Banner + retry | Table of fills |
-| Allocations (`Allocations` tab) | Skeleton chart | `<Illustration level=2 category="empty" name="search" />` + CTA *(shown in prototype)* | Banner + retry | Donut + sleeve list |
-| Compliance (`Compliance` tab) | Spinner | "All checks passed today" + green Tag | `Banner type="error"` + Retry button *(shown in prototype)* | Per-rule status list |
+| Trades blotter (`Trades` tab) | `<Spinner size="md" color="dark" />` + "Loading trade blotter…" *(still rendered by `LoadingTab` for the loading-state demo, not wired to a tab)* | `<Illustration empty/>` + "No fills match this filter" + reset Button *(shown in prototype when Side filter clears all rows)* | Banner + retry | AG Grid with side chip / status dot / fees / account / trader, summary strip on top |
+| Positions view (`Positions` tab) | Skeleton rows ×8 + skeleton summary | "No open positions for this account" + `Button` "New trade" | Inline `Banner type="error"` above the grid with retry | Summary strip (long/short, gross, P&L, top concentration) + AG Grid over POSITIONS_FULL with optional row grouping by sector |
+| Allocations (`Allocations` tab) | Skeleton sleeve rows + skeleton sector bars | `<Illustration level=2 category="empty" name="search" />` + "Configure allocations" CTA (use `EmptyTab` as the reference state) | `Banner type="error"` above the sleeve panel with retry | Summary strip + sleeve rows (target/current bar, drift, P&L, status tag) + sector exposure panel |
+| Compliance (`Compliance` tab) | Spinner | "All checks passed today" + green Tag | `Banner type="error"` + Retry button (use `ErrorTab` as the reference state) | Summary strip + failing-rules Banner + AG Grid of rules with status chips |
 | Sidebar Watchlist | Skeleton chips | "Add symbols to track" placeholder inside TagsFields | Inline error message on TagsFields | Chips of selected symbols |
 | Day notes / Textarea | n/a (input) | Placeholder text | `errorMessage` prop on Textarea | Free text |
 

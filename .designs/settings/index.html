@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Settings — prototype</title>
   <link rel="stylesheet" href="../vendor/alix-ui.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-grid.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-theme-quartz.css" />
+  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31/dist/ag-grid-community.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
   <style>
     body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: #f6f7f9; color: #0f172a; }
@@ -51,11 +54,20 @@
     .source-card .src-desc { font-size: 12px; color: #64748b; margin-top: 2px; }
     .source-card .src-icon { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; background: #eef2ff; color: #1e40af; border-radius: 8px; }
 
-    table.keys { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-    table.keys th, table.keys td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-    table.keys thead th { color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; background: #f8fafc; }
-    table.keys .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-    table.keys tbody tr:hover { background: #f8fafc; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    .scope-chip { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 18px; }
+    .scope-read  { background: #dbeafe; color: #1e40af; }
+    .scope-write { background: #fecaca; color: #991b1b; }
+    .session-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; background: #dcfce7; color: #166534; margin-left: 6px; }
+    .row-action {
+      appearance: none; background: transparent; border: none; cursor: pointer;
+      color: #0f172a; font: 600 12px/1 system-ui; padding: 4px 6px; border-radius: 6px;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .row-action:hover { background: #f1f5f9; }
+    .row-action.danger { color: #b91c1c; }
+    .row-action.danger:hover { background: #fee2e2; }
+    .row-action[disabled] { opacity: .4; cursor: default; }
 
     .danger-action { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding: 14px; border: 1px solid #fecaca; border-radius: 10px; background: #fef2f2; }
     .danger-action + .danger-action { margin-top: 8px; }
@@ -84,12 +96,7 @@
       .page-wrap { padding: 0 12px 120px; }
       .save-bar { padding: 12px; flex-wrap: wrap; }
       .save-bar .dirty-pill { width: 100%; margin-bottom: 6px; }
-      table.keys thead { display: none; }
-      table.keys, table.keys tbody, table.keys tr { display: block; width: 100%; }
-      table.keys tr { border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 12px; margin-bottom: 8px; }
-      table.keys td { border: none; padding: 4px 0; display: grid; grid-template-columns: 100px 1fr; align-items: center; }
-      table.keys td::before { content: attr(data-label); color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; }
-      table.keys td:first-child::before { content: ""; }
+      /* AG Grid horizontal-scrolls at narrow widths instead of linearizing. */
     }
     @media (max-width: 400px) {
       .title-block h1 { font-size: 22px; }
@@ -103,6 +110,7 @@
   <script type="text/babel" data-type="module" data-presets="react">
     import {
       React, createRoot,
+      AgGrid,
       NavBar, Banner, Button, Ghost, Tag, Tooltip, Toggle, Checkbox,
       Input, Search, Datepicker, Dropdown, SplitButton, TabNavigation, Tab,
       Spinner, Icon, Dialog, ToastProvider, useToast, Textarea, TagsFields,
@@ -119,6 +127,112 @@
       { id: "api",        label: "API keys",        icon: "ap-icon-key" },
       { id: "security",   label: "Security",        icon: "ap-icon-lock" },
     ];
+
+    // ----------- Tables (AG Grid) -----------
+    function ApiKeysGrid({ keys, onRotate, onRevoke }) {
+      const columnDefs = useMemo(() => [
+        { field: "name",     headerName: "Name",      flex: 2, minWidth: 180,
+          cellStyle: { fontWeight: 700 } },
+        { field: "scope",    headerName: "Scope",     width: 110, sortable: true,
+          cellRenderer: (p) => {
+            const s = document.createElement("span");
+            s.className = "scope-chip " + (p.value === "write" ? "scope-write" : "scope-read");
+            s.textContent = p.value;
+            return s;
+          },
+        },
+        { field: "prefix",   headerName: "Prefix",    flex: 1.4, minWidth: 140, cellClass: "mono" },
+        { field: "created",  headerName: "Created",   width: 130 },
+        { field: "lastUsed", headerName: "Last used", width: 140 },
+        {
+          headerName: "Actions", width: 200, sortable: false, filter: false, resizable: false,
+          cellRenderer: (p) => {
+            const wrap = document.createElement("div");
+            wrap.style.cssText = "display:flex;gap:4px;justify-content:flex-end;align-items:center;height:100%";
+            const rotate = document.createElement("button");
+            rotate.className = "row-action";
+            rotate.innerHTML = "↻ Rotate";
+            rotate.addEventListener("click", () => onRotate(p.data));
+            const revoke = document.createElement("button");
+            revoke.className = "row-action danger";
+            revoke.innerHTML = "✕ Revoke";
+            revoke.addEventListener("click", () => onRevoke(p.data.id));
+            wrap.append(rotate, revoke);
+            return wrap;
+          },
+        },
+      ], [onRotate, onRevoke]);
+
+      return (
+        <AgGrid
+          rowData={keys}
+          columnDefs={columnDefs}
+          height={Math.max(keys.length, 1) * 44 + 48}
+          rowHeight={44}
+          headerHeight={36}
+          gridOptions={{ suppressCellFocus: true }}
+        />
+      );
+    }
+
+    const SESSIONS = [
+      { id: "s1", device: "MacBook Pro · Chrome 128", location: "Buenos Aires, AR", lastActive: "just now",   current: true },
+      { id: "s2", device: "iPhone · Safari iOS 18",   location: "Buenos Aires, AR", lastActive: "3 hours ago", current: false },
+      { id: "s3", device: "Windows · Edge 122",       location: "New York, US",     lastActive: "2 days ago",  current: false },
+    ];
+
+    function SessionsGrid({ onSignOut }) {
+      const columnDefs = useMemo(() => [
+        { field: "device", headerName: "Device", flex: 2, minWidth: 240,
+          cellRenderer: (p) => {
+            const wrap = document.createElement("div");
+            wrap.style.cssText = "display:flex;align-items:center;gap:6px;height:100%";
+            const txt = document.createElement("strong");
+            txt.textContent = p.value;
+            wrap.append(txt);
+            if (p.data.current) {
+              const chip = document.createElement("span");
+              chip.className = "session-chip";
+              chip.textContent = "this session";
+              wrap.append(chip);
+            }
+            return wrap;
+          },
+        },
+        { field: "location",   headerName: "Location",    flex: 1, minWidth: 140 },
+        { field: "lastActive", headerName: "Last active", flex: 1, minWidth: 130 },
+        {
+          headerName: "Actions", width: 160, sortable: false, filter: false, resizable: false,
+          cellRenderer: (p) => {
+            const btn = document.createElement("button");
+            btn.className = "row-action danger";
+            if (p.data.current) {
+              btn.disabled = true;
+              btn.textContent = "—";
+              btn.className = "row-action";
+            } else {
+              btn.innerHTML = "⤴ Sign out";
+              btn.addEventListener("click", () => onSignOut(p.data));
+            }
+            const wrap = document.createElement("div");
+            wrap.style.cssText = "display:flex;justify-content:flex-end;align-items:center;height:100%";
+            wrap.append(btn);
+            return wrap;
+          },
+        },
+      ], [onSignOut]);
+
+      return (
+        <AgGrid
+          rowData={SESSIONS}
+          columnDefs={columnDefs}
+          height={SESSIONS.length * 44 + 48}
+          rowHeight={44}
+          headerHeight={36}
+          gridOptions={{ suppressCellFocus: true }}
+        />
+      );
+    }
 
     function SideNav({ active, onPick, dangerOpen }) {
       return (
@@ -550,37 +664,7 @@
 
           <div className="section">
             <h3>Existing keys</h3>
-            <table className="keys">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Scope</th>
-                  <th>Prefix</th>
-                  <th>Created</th>
-                  <th>Last used</th>
-                  <th style={{textAlign:"right"}}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {keys.map(k => (
-                  <tr key={k.id}>
-                    <td data-label="Name"><strong>{k.name}</strong></td>
-                    <td data-label="Scope">
-                      {k.scope === "write"
-                        ? <Tag type="basic" size="sm" structure="solid" color="red"  label="write" />
-                        : <Tag type="basic" size="sm" structure="border" color="blue" label="read" />}
-                    </td>
-                    <td data-label="Prefix" className="mono">{k.prefix}</td>
-                    <td data-label="Created">{k.created}</td>
-                    <td data-label="Last used">{k.lastUsed}</td>
-                    <td data-label="Actions" style={{textAlign:"right"}}>
-                      <Ghost variant="default" icon="ap-icon-sync" onClick={() => toast.success(`Rotated "${k.name}"`)}>Rotate</Ghost>
-                      <Ghost variant="danger" icon="ap-icon-delete" onClick={() => setRevokeId(k.id)}>Revoke</Ghost>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <ApiKeysGrid keys={keys} onRotate={(k) => toast.success(`Rotated "${k.name}"`)} onRevoke={(id) => setRevokeId(id)} />
           </div>
 
           <Dialog
@@ -677,36 +761,7 @@
 
           <div className="section">
             <h3>Active sessions</h3>
-            <table className="keys">
-              <thead>
-                <tr>
-                  <th>Device</th>
-                  <th>Location</th>
-                  <th>Last active</th>
-                  <th style={{textAlign:"right"}}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td data-label="Device"><strong>MacBook Pro · Chrome 128</strong> <Tag type="success" size="sm" structure="borderless" label="this session" /></td>
-                  <td data-label="Location">Buenos Aires, AR</td>
-                  <td data-label="Last active">just now</td>
-                  <td data-label="Actions" style={{textAlign:"right"}}><Ghost variant="default" noIcon disabled>—</Ghost></td>
-                </tr>
-                <tr>
-                  <td data-label="Device">iPhone · Safari iOS 18</td>
-                  <td data-label="Location">Buenos Aires, AR</td>
-                  <td data-label="Last active">3 hours ago</td>
-                  <td data-label="Actions" style={{textAlign:"right"}}><Ghost variant="danger" icon="ap-icon-logout" onClick={() => toast.success("Signed out remotely")}>Sign out</Ghost></td>
-                </tr>
-                <tr>
-                  <td data-label="Device">Windows · Edge 122</td>
-                  <td data-label="Location">New York, US</td>
-                  <td data-label="Last active">2 days ago</td>
-                  <td data-label="Actions" style={{textAlign:"right"}}><Ghost variant="danger" icon="ap-icon-logout" onClick={() => toast.success("Signed out remotely")}>Sign out</Ghost></td>
-                </tr>
-              </tbody>
-            </table>
+            <SessionsGrid onSignOut={(s) => toast.success(`Signed out · ${s.device}`)} />
           </div>
         </div>
       );
@@ -762,7 +817,8 @@
     // ----------- App -----------
     function SettingsApp() {
       const toast = useToast();
-      const [active, setActive] = useState("profile");
+      const initial = (new URLSearchParams(location.search).get("section")) || (location.hash.replace(/^#/, "")) || "profile";
+      const [active, setActive] = useState(SECTIONS.some(s => s.id === initial) || initial === "danger" ? initial : "profile");
       const [dirty, setDirty] = useState(false);
       const [saving, setSaving] = useState(false);
       const markDirty = () => setDirty(true);

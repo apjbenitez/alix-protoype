@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AgGrid smoke</title>
+  <link rel="stylesheet" href="../vendor/alix-ui.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-grid.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-theme-quartz.css" />
+  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31/dist/ag-grid-community.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-type="module" data-presets="react">
+    import { React, createRoot, AgGrid } from "../vendor/alix-ui.js";
+    const rows = [
+      { sym: "NVDA", sector: "Tech", qty: 1400, pnl: 49952 },
+      { sym: "TSLA", sector: "Consumer", qty: 950, pnl: 3895 },
+      { sym: "META", sector: "Tech", qty: -300, pnl: -1830 },
+    ];
+    const cols = [
+      { field: "sym", headerName: "Symbol", pinned: "left", width: 110 },
+      { field: "sector", headerName: "Sector", width: 130 },
+      { field: "qty", headerName: "Qty", type: "rightAligned", valueFormatter: (p) => p.value.toLocaleString() },
+      { field: "pnl", headerName: "P&L", type: "rightAligned",
+        cellStyle: (p) => ({ color: p.value >= 0 ? "#15803d" : "#b91c1c", fontWeight: 600 }),
+        valueFormatter: (p) => (p.value >= 0 ? "+$" : "−$") + Math.abs(p.value).toLocaleString() },
+    ];
+    function App() {
+      return (
+        <main style={{padding: 24}}>
+          <h1>AgGrid smoke</h1>
+          <AgGrid rowData={rows} columnDefs={cols} height={260} rowHeight={36} headerHeight={36} />
+        </main>
+      );
+    }
+    createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
