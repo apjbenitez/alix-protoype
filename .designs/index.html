@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AlixPartners prototypes</title>
+  <link rel="stylesheet" href="vendor/alix-ui.css" />
+  <style>
+    :root {
+      --ap-font: Roboto, sans-serif;
+      --ap-bg-page: #f1f1f1;
+      --ap-bg-surface: #ffffff;
+      --ap-bg-muted: #f5f5f5;
+      --ap-text: #28292c;
+      --ap-text-2: #4a4a4a;
+      --ap-text-muted: #727272;
+      --ap-border: #cccccc;
+      --ap-border-soft: #e6e6e6;
+      --ap-primary: #024870;
+      --ap-primary-2: #0369a3;
+      --ap-success: #498e2b;
+      --ap-radius: 4px;
+      --ap-radius-lg: 8px;
+      --ap-space-2: 8px;
+      --ap-space-3: 12px;
+      --ap-space-4: 16px;
+      --ap-space-6: 24px;
+      --ap-space-8: 32px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--ap-font);
+      font-size: 14px;
+      line-height: 1.45;
+      background: var(--ap-bg-page);
+      color: var(--ap-text);
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: var(--ap-space-8) var(--ap-space-6);
+    }
+    header { margin-bottom: var(--ap-space-6); }
+    .eyebrow {
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .08em;
+      color: var(--ap-text-muted);
+    }
+    h1 {
+      margin: 6px 0 8px;
+      font-size: 28px; font-weight: 700; letter-spacing: -0.01em;
+      line-height: 1.15;
+    }
+    p.lede {
+      margin: 0;
+      color: var(--ap-text-2);
+      font-size: 15px;
+      max-width: 60ch;
+    }
+    .grid {
+      margin-top: var(--ap-space-6);
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--ap-space-4);
+    }
+    a.card {
+      display: block;
+      padding: var(--ap-space-4);
+      background: var(--ap-bg-surface);
+      border: 1px solid var(--ap-border);
+      border-radius: var(--ap-radius);
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+    }
+    a.card:hover {
+      border-color: var(--ap-primary-2);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    }
+    a.card .name {
+      font-weight: 700; font-size: 15px; color: var(--ap-text);
+      display: flex; justify-content: space-between; align-items: center;
+      gap: var(--ap-space-2);
+    }
+    a.card .name .arrow {
+      color: var(--ap-primary-2); font-size: 14px; transition: transform 0.15s;
+    }
+    a.card:hover .name .arrow { transform: translateX(3px); }
+    a.card .path {
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--ap-text-muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    a.card .blurb {
+      margin-top: var(--ap-space-2);
+      color: var(--ap-text-2);
+      font-size: 13px;
+    }
+    .tag {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px; border-radius: 999px;
+      font-size: 11px; font-weight: 600;
+      background: var(--ap-bg-muted);
+      color: var(--ap-text-2);
+      margin-top: var(--ap-space-2);
+    }
+    footer {
+      margin-top: var(--ap-space-8);
+      padding-top: var(--ap-space-4);
+      border-top: 1px solid var(--ap-border-soft);
+      font-size: 12px;
+      color: var(--ap-text-muted);
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--ap-space-2);
+    }
+    footer a { color: var(--ap-primary-2); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="eyebrow">AlixPartners · platforms prototypes</div>
+      <h1>Design prototypes</h1>
+      <p class="lede">
+        Static HTML mockups built with the real <code>@alixpartners/ui-components</code> library.
+        Each one mounts React in the browser via <code>@babel/standalone</code> — no build, no server.
+      </p>
+    </header>
+
+    <div class="grid">
+      <a class="card" href="finance-dashboard/">
+        <div class="name">Finance dashboard <span class="arrow">→</span></div>
+        <div class="path">finance-dashboard/</div>
+        <div class="blurb">
+          End-of-day snapshot for a portfolio manager. KPIs, top movers, positions,
+          trade blotter, sleeve allocations, compliance rules, and a mocked AI assistant.
+        </div>
+        <span class="tag">Dashboard</span>
+      </a>
+
+      <a class="card" href="settings/">
+        <div class="name">Settings <span class="arrow">→</span></div>
+        <div class="path">settings/</div>
+        <div class="blurb">
+          Account, notification, and integration settings — exercises form primitives
+          from the design system.
+        </div>
+        <span class="tag">Forms</span>
+      </a>
+
+      <a class="card" href="aggrid-smoke/">
+        <div class="name">AG Grid smoke test <span class="arrow">→</span></div>
+        <div class="path">aggrid-smoke/</div>
+        <div class="blurb">
+          Minimal AG Grid integration check — confirms the table component renders
+          and styles cleanly against the DS tokens.
+        </div>
+        <span class="tag">Sandbox</span>
+      </a>
+    </div>
+
+    <footer>
+      <span>Built with @alixpartners/ui-components · Roboto · Platforms DS</span>
+      <span><a href="https://www.figma.com/design/uKDQ4UPs40MQXxn6CrcqTO/Platforms-Design-System" target="_blank" rel="noreferrer">Platforms Design System ↗</a></span>
+    </footer>
+  </div>
+</body>
+</html>
