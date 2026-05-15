@@ -102,7 +102,38 @@ The agent should:
 3. Update `spec.md` if needed.
 4. Print the local serve command (`npx --yes serve .designs`) and the prototype URL path.
 
-After the agent returns, **show the final artifacts to the user**. Stop.
+### Step 4 — Register the prototype in the router index (mandatory)
+
+After `index.html` exists at `.designs/<feature-name>/index.html`, the orchestrator (NOT a sub-agent) must update `.designs/index.html` so the new prototype is reachable from the root listing.
+
+This step is **mandatory on every new prototype** and **only runs when a NEW folder under `.designs/` was created**. If Stage 3 only edited an existing prototype (same folder), skip this step.
+
+Procedure:
+
+1. Read `.designs/index.html`.
+2. Inside the `<div class="grid">…</div>` block, add a new card matching the existing pattern. Place it last in the list (chronological order — newest at the bottom keeps git diffs minimal):
+
+   ```html
+   <a class="card" href="<feature-name>/">
+     <div class="name"><Display name> <span class="arrow">→</span></div>
+     <div class="path"><feature-name>/</div>
+     <div class="blurb">
+       <One-to-two-sentence summary lifted from spec.md's Goal statement,
+       trimmed to ~160 chars.>
+     </div>
+     <span class="tag"><Category></span>
+   </a>
+   ```
+
+   - **Display name** — human-readable, may include a project codename (e.g. `Neobank landing — Nala`).
+   - **`<feature-name>/`** — the kebab-case folder name with a trailing slash so `serve` resolves the index.
+   - **Blurb** — pulled from the spec's Goal statement or Persona line. No marketing copy.
+   - **Tag** — one of `Dashboard`, `Forms`, `Sandbox`, `Landing`, `Onboarding`, `Settings`, `Wizard`, `Report`, or a new one if none fits. Keep it singular and Title Case.
+
+3. Do not modify the `<style>`, `<header>`, or `<footer>` of the router index. Only insert the new `<a class="card">` block.
+4. Do not touch other cards — the router is an append-only registry from the orchestrator's perspective.
+
+After the card is added, **show the final artifacts to the user**. Stop.
 
 ---
 
@@ -384,6 +415,8 @@ Every component that loads data describes all four states:
 - ❌ Don't design in a vacuum — agents must read the existing code and prior `.designs/` first.
 - ❌ Don't add Tailwind classes inside a prototype — Tailwind isn't running there.
 - ❌ Don't run `npm run lint` or `npm run dev` from Stage 3 — prototypes are static HTML, not part of the build.
+- ❌ Don't forget Step 4 — every new prototype must be registered in `.designs/index.html` so the router lists it. Skipping this orphans the prototype from the serve root.
+- ❌ Don't restyle or restructure `.designs/index.html` when registering a new prototype — only append a `<a class="card">` block inside the existing `<div class="grid">`. The router is append-only.
 
 ---
 
