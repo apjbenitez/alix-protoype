@@ -422,7 +422,15 @@ Every component that loads data describes all four states:
 
 ## Serving prototypes
 
-From the repo root:
+**Preferred — prototype harness** (sidebar + iframe + Claude Code chat per prototype):
+
+```sh
+npm run prototype
+```
+
+Opens `http://localhost:4321`. Pick a prototype from the sidebar; iframe auto-reloads on file changes; chat panel drives Claude Code scoped to that prototype's folder.
+
+**Fallback — static serve** (when you don't need chat):
 
 ```sh
 npx --yes serve .designs
