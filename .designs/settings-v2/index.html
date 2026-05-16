@@ -1,0 +1,1858 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Settings v2 — prototype</title>
+  <link rel="stylesheet" href="../vendor/alix-ui.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-grid.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-theme-quartz.css" />
+  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31/dist/ag-grid-community.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+  <style>
+    /* =================================================================
+       AlixPartners Platforms Design System — resolved tokens
+       ================================================================= */
+    :root {
+      --ap-font:        Roboto, sans-serif;
+
+      --ap-bg-page:     #f1f1f1;
+      --ap-bg-surface:  #ffffff;
+      --ap-bg-subtle:   #fafafa;
+      --ap-bg-muted:    #f5f5f5;
+
+      --ap-text:        #28292c;
+      --ap-text-2:      #4a4a4a;
+      --ap-text-muted:  #727272;
+      --ap-text-soft:   #878787;
+
+      --ap-border:      #cccccc;
+      --ap-border-soft: #e6e6e6;
+
+      --ap-primary:     #024870;
+      --ap-primary-2:   #0369a3;
+      --ap-primary-bg:  #e8f4fc;
+
+      --ap-success:     #498e2b;
+      --ap-success-2:   #3f7b25;
+      --ap-success-bg:  #dff0db;
+
+      --ap-error:       #cb282e;
+      --ap-error-2:     #ac272c;
+      --ap-error-bg:    #fde8e8;
+
+      --ap-warning:     #ce7309;
+      --ap-warning-bg:  #fbe7c4;
+
+      --ap-radius-sm:   2px;
+      --ap-radius:      4px;
+      --ap-radius-md:   6px;
+      --ap-radius-lg:   8px;
+
+      --ap-space-1:     4px;
+      --ap-space-2:     8px;
+      --ap-space-3:     12px;
+      --ap-space-4:     16px;
+      --ap-space-5:     20px;
+      --ap-space-6:     24px;
+      --ap-space-8:     32px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: var(--ap-font);
+      font-size: 14px;
+      line-height: 1.5;
+      background: var(--ap-bg-page);
+      color: var(--ap-text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 var(--ap-space-6) 100px;
+    }
+
+    /* ---------- Page Header ---------- */
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--ap-space-4);
+      margin: var(--ap-space-6) 0 var(--ap-space-5);
+    }
+    .page-header__left h1 {
+      margin: 0;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--ap-text);
+    }
+    .page-header__left .subtitle {
+      margin: var(--ap-space-1) 0 0;
+      font-size: 13px;
+      color: var(--ap-text-muted);
+    }
+    .page-header__right {
+      display: flex;
+      align-items: center;
+      gap: var(--ap-space-3);
+    }
+
+    /* ---------- Settings Shell ---------- */
+    .settings-shell {
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      gap: var(--ap-space-6);
+      align-items: start;
+    }
+
+    /* ---------- Sidebar ---------- */
+    .settings-sidebar {
+      position: sticky;
+      top: var(--ap-space-4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--ap-space-3);
+    }
+
+    .sidebar-search {
+      position: relative;
+    }
+    .sidebar-search input {
+      width: 100%;
+      padding: var(--ap-space-2) var(--ap-space-3);
+      padding-left: 36px;
+      font-size: 13px;
+      border: 1px solid var(--ap-border);
+      border-radius: var(--ap-radius);
+      background: var(--ap-bg-surface);
+      color: var(--ap-text);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .sidebar-search input:focus {
+      border-color: var(--ap-primary);
+      box-shadow: 0 0 0 2px var(--ap-primary-bg);
+    }
+    .sidebar-search input::placeholder { color: var(--ap-text-soft); }
+    .sidebar-search .search-icon {
+      position: absolute;
+      left: var(--ap-space-3);
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--ap-text-soft);
+      pointer-events: none;
+    }
+    .sidebar-search .shortcut {
+      position: absolute;
+      right: var(--ap-space-2);
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--ap-text-soft);
+      background: var(--ap-bg-muted);
+      padding: 2px 6px;
+      border-radius: var(--ap-radius-sm);
+      border: 1px solid var(--ap-border-soft);
+    }
+
+    .settings-nav {
+      background: var(--ap-bg-surface);
+      border: 1px solid var(--ap-border);
+      border-radius: var(--ap-radius);
+      padding: var(--ap-space-2);
+    }
+    .nav-group {
+      padding: var(--ap-space-2) var(--ap-space-3);
+    }
+    .nav-group-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ap-text-soft);
+      margin-bottom: var(--ap-space-2);
+    }
+    .nav-sep {
+      height: 1px;
+      background: var(--ap-border-soft);
+      margin: var(--ap-space-2) var(--ap-space-3);
+    }
+    .settings-nav button {
+      appearance: none;
+      background: transparent;
+      border: none;
+      width: 100%;
+      text-align: left;
+      padding: var(--ap-space-2) var(--ap-space-3);
+      border-radius: var(--ap-radius);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ap-text-2);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: var(--ap-space-2);
+      transition: background 0.1s, color 0.1s;
+    }
+    .settings-nav button:hover {
+      background: var(--ap-bg-muted);
+    }
+    .settings-nav button.active {
+      background: var(--ap-primary-bg);
+      color: var(--ap-primary);
+      font-weight: 600;
+    }
+    .settings-nav button.danger {
+      color: var(--ap-error);
+    }
+    .settings-nav button.danger:hover {
+      background: var(--ap-error-bg);
+    }
+    .settings-nav button.danger.active {
+      background: var(--ap-error-bg);
+      color: var(--ap-error);
+    }
+    .settings-nav .nav-icon {
+      width: 16px;
+      height: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ---------- Panels ---------- */
+    .panel {
+      background: var(--ap-bg-surface);
+      border: 1px solid var(--ap-border);
+      border-radius: var(--ap-radius);
+      padding: var(--ap-space-5);
+    }
+    .panel + .panel { margin-top: var(--ap-space-4); }
+
+    .panel-header {
+      margin-bottom: var(--ap-space-4);
+      padding-bottom: var(--ap-space-4);
+      border-bottom: 1px solid var(--ap-border-soft);
+    }
+    .panel-header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ap-text);
+      display: flex;
+      align-items: center;
+      gap: var(--ap-space-2);
+    }
+    .panel-header .panel-desc {
+      margin: var(--ap-space-1) 0 0;
+      font-size: 13px;
+      color: var(--ap-text-muted);
+    }
+
+    .section {
+      padding-top: var(--ap-space-4);
+      margin-top: var(--ap-space-4);
+      border-top: 1px solid var(--ap-border-soft);
+    }
+    .section:first-of-type {
+      border-top: none;
+      padding-top: 0;
+      margin-top: 0;
+    }
+    .section h3 {
+      margin: 0 0 var(--ap-space-1);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ap-text);
+    }
+    .section .section-desc {
+      margin: 0 0 var(--ap-space-3);
+      font-size: 12px;
+      color: var(--ap-text-muted);
+    }
+
+    /* ---------- Form Grid ---------- */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--ap-space-4);
+    }
+    .form-grid .span-2 { grid-column: 1 / -1; }
+
+    .field-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--ap-space-3) 0;
+      border-bottom: 1px solid var(--ap-border-soft);
+    }
+    .field-row:last-child { border-bottom: none; }
+    .field-row .field-info { flex: 1; min-width: 0; }
+    .field-row .field-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ap-text);
+    }
+    .field-row .field-desc {
+      font-size: 12px;
+      color: var(--ap-text-muted);
+      margin-top: 2px;
+    }
+    .field-row .field-control {
+      flex-shrink: 0;
+      margin-left: var(--ap-space-4);
+    }
+
+    /* ---------- Source Cards ---------- */
+    .source-card {
+      display: grid;
+      grid-template-columns: 40px 1fr auto auto;
+      gap: var(--ap-space-3);
+      align-items: center;
+      padding: var(--ap-space-3);
+      background: var(--ap-bg-subtle);
+      border: 1px solid var(--ap-border-soft);
+      border-radius: var(--ap-radius);
+      transition: border-color 0.15s;
+    }
+    .source-card:hover { border-color: var(--ap-border); }
+    .source-card + .source-card { margin-top: var(--ap-space-2); }
+    .source-card .src-icon {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--ap-primary-bg);
+      color: var(--ap-primary);
+      border-radius: var(--ap-radius);
+      font-size: 18px;
+    }
+    .source-card .src-info { min-width: 0; }
+    .source-card .src-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ap-text);
+    }
+    .source-card .src-desc {
+      font-size: 12px;
+      color: var(--ap-text-muted);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .source-card .src-actions {
+      display: flex;
+      gap: var(--ap-space-2);
+      align-items: center;
+    }
+
+    /* ---------- Status & Scope Tags ---------- */
+    .status-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .status-dot::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ap-text-soft);
+    }
+    .status-dot.live::before { background: var(--ap-success); }
+    .status-dot.stale::before { background: var(--ap-warning); }
+    .status-dot.error::before { background: var(--ap-error); }
+
+    .scope-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .scope-badge.read {
+      background: var(--ap-primary-bg);
+      color: var(--ap-primary);
+    }
+    .scope-badge.write {
+      background: var(--ap-error-bg);
+      color: var(--ap-error);
+    }
+
+    .session-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--ap-success-bg);
+      color: var(--ap-success-2);
+    }
+
+    /* ---------- Action Buttons ---------- */
+    .row-action {
+      appearance: none;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font: 500 12px/1 var(--ap-font);
+      color: var(--ap-text-2);
+      padding: var(--ap-space-1) var(--ap-space-2);
+      border-radius: var(--ap-radius-sm);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.1s, color 0.1s;
+    }
+    .row-action:hover { background: var(--ap-bg-muted); }
+    .row-action.danger { color: var(--ap-error); }
+    .row-action.danger:hover { background: var(--ap-error-bg); }
+    .row-action[disabled] { opacity: 0.4; cursor: default; }
+
+    /* ---------- Danger Actions ---------- */
+    .danger-action {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: var(--ap-space-4);
+      align-items: center;
+      padding: var(--ap-space-4);
+      background: var(--ap-error-bg);
+      border: 1px solid #f5c6c6;
+      border-radius: var(--ap-radius);
+    }
+    .danger-action + .danger-action { margin-top: var(--ap-space-2); }
+    .danger-action h4 {
+      margin: 0 0 var(--ap-space-1);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ap-error);
+    }
+    .danger-action p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--ap-error-2);
+    }
+
+    /* ---------- Save Bar ---------- */
+    .save-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--ap-bg-surface);
+      border-top: 1px solid var(--ap-border);
+      padding: var(--ap-space-3) var(--ap-space-6);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: var(--ap-space-3);
+      z-index: 40;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+    }
+    .save-bar .status-indicator {
+      margin-right: auto;
+      display: flex;
+      align-items: center;
+      gap: var(--ap-space-2);
+      font-size: 13px;
+      color: var(--ap-text-muted);
+    }
+    .save-bar .status-indicator .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ap-success);
+    }
+    .save-bar .status-indicator.dirty .dot {
+      background: var(--ap-warning);
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* ---------- Nav badge ---------- */
+    .nav-badge {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 700;
+      min-width: 18px;
+      height: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 5px;
+      border-radius: 999px;
+      background: var(--ap-error);
+      color: white;
+    }
+
+    /* ---------- Profile Avatar ---------- */
+    .profile-avatar-section {
+      display: flex;
+      align-items: center;
+      gap: var(--ap-space-4);
+      padding: var(--ap-space-4);
+      background: var(--ap-bg-subtle);
+      border-radius: var(--ap-radius);
+      margin-bottom: var(--ap-space-4);
+    }
+    .profile-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--ap-primary-bg);
+      color: var(--ap-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .profile-avatar-info { flex: 1; min-width: 0; }
+    .profile-avatar-info .name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ap-text);
+    }
+    .profile-avatar-info .email {
+      font-size: 13px;
+      color: var(--ap-text-muted);
+      margin-top: 2px;
+    }
+    .profile-avatar-info .role {
+      display: inline-flex;
+      margin-top: var(--ap-space-2);
+      padding: 2px 8px;
+      background: var(--ap-bg-muted);
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ap-text-2);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    /* ---------- Quick Stats ---------- */
+    .quick-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--ap-space-3);
+      padding: var(--ap-space-4);
+      background: var(--ap-bg-subtle);
+      border-radius: var(--ap-radius);
+      margin-bottom: var(--ap-space-4);
+    }
+    .quick-stat {
+      text-align: center;
+    }
+    .quick-stat .value {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ap-text);
+    }
+    .quick-stat .label {
+      font-size: 11px;
+      color: var(--ap-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 2px;
+    }
+
+    /* ---------- Mono text ---------- */
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+    }
+
+    /* ---------- Design Badge ---------- */
+    .design-badge {
+      position: fixed;
+      bottom: 64px;
+      right: var(--ap-space-3);
+      font: 600 11px/1 var(--ap-font);
+      padding: 6px 10px;
+      background: var(--ap-text);
+      color: var(--ap-bg-surface);
+      border-radius: 999px;
+      z-index: 50;
+    }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 900px) {
+      .settings-shell {
+        grid-template-columns: 1fr;
+      }
+      .settings-sidebar {
+        position: static;
+      }
+      .settings-nav {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: var(--ap-space-1);
+        padding: var(--ap-space-2);
+        -webkit-overflow-scrolling: touch;
+      }
+      .settings-nav button {
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .nav-group, .nav-sep, .nav-group-label { display: none; }
+      .sidebar-search { order: -1; margin-bottom: var(--ap-space-2); }
+      .form-grid { grid-template-columns: 1fr; }
+      .source-card { grid-template-columns: 40px 1fr; }
+      .source-card .src-status { grid-column: 2; margin-top: var(--ap-space-1); }
+      .source-card .src-actions { grid-column: 1 / -1; justify-content: flex-end; margin-top: var(--ap-space-2); }
+      .quick-stats { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .page-wrap { padding: 0 var(--ap-space-3) 100px; }
+      .page-header { flex-direction: column; align-items: flex-start; gap: var(--ap-space-2); }
+      .page-header__right { width: 100%; }
+      .save-bar {
+        padding: var(--ap-space-3);
+        flex-wrap: wrap;
+      }
+      .save-bar .status-indicator {
+        width: 100%;
+        margin-bottom: var(--ap-space-2);
+      }
+      .profile-avatar-section { flex-direction: column; text-align: center; }
+      .profile-avatar-info .role { margin-top: var(--ap-space-3); }
+      .danger-action { grid-template-columns: 1fr; }
+      .danger-action button { justify-self: start; margin-top: var(--ap-space-2); }
+    }
+
+    @media (max-width: 400px) {
+      .page-header__left h1 { font-size: 20px; }
+      .panel { padding: var(--ap-space-3); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div class="design-badge">settings v2 — prototype</div>
+
+  <script type="text/babel" data-type="module" data-presets="react">
+    import {
+      React, createRoot,
+      AgGrid,
+      NavBar, Banner, Button, Ghost, Tag, Tooltip, Toggle, Checkbox,
+      Input, Search, Datepicker, Dropdown, SplitButton, TabNavigation, Tab,
+      Spinner, Icon, Dialog, ToastProvider, useToast, Textarea, TagsFields,
+      Creatable, RadioGroup, Radio, Illustration, FilePicker
+    } from "../vendor/alix-ui.js";
+    const { useState, useMemo, useCallback, useEffect, useRef } = React;
+
+    // ===================== NAVIGATION SECTIONS =====================
+    const SECTIONS = [
+      { id: "profile",    label: "Profile",          icon: "ap-icon-person",              group: "account" },
+      { id: "security",   label: "Security",         icon: "ap-icon-lock",                group: "account" },
+      { id: "notifs",     label: "Notifications",    icon: "ap-icon-notification-filled", group: "preferences" },
+      { id: "display",    label: "Appearance",       icon: "ap-icon-color",               group: "preferences" },
+      { id: "trading",    label: "Trading defaults", icon: "ap-icon-financial",           group: "workspace" },
+      { id: "sources",    label: "Data sources",     icon: "ap-icon-sync",                group: "workspace", badge: 1 },
+      { id: "api",        label: "API keys",         icon: "ap-icon-key",                 group: "workspace" },
+    ];
+
+    // ===================== API KEYS TABLE =====================
+    function ApiKeysGrid({ keys, onRotate, onRevoke }) {
+      const columnDefs = useMemo(() => [
+        {
+          field: "name",
+          headerName: "Name",
+          flex: 2,
+          minWidth: 160,
+          cellStyle: { fontWeight: 600 }
+        },
+        {
+          field: "scope",
+          headerName: "Scope",
+          width: 100,
+          cellRenderer: (p) => {
+            const span = document.createElement("span");
+            span.className = "scope-badge " + (p.value === "write" ? "write" : "read");
+            span.textContent = p.value;
+            return span;
+          }
+        },
+        {
+          field: "prefix",
+          headerName: "Prefix",
+          flex: 1.2,
+          minWidth: 120,
+          cellClass: "mono"
+        },
+        { field: "created",  headerName: "Created",   width: 110 },
+        { field: "lastUsed", headerName: "Last used", width: 120 },
+        {
+          headerName: "",
+          width: 180,
+          sortable: false,
+          filter: false,
+          resizable: false,
+          cellRenderer: (p) => {
+            const wrap = document.createElement("div");
+            wrap.style.cssText = "display:flex;gap:4px;justify-content:flex-end;align-items:center;height:100%";
+            const rotate = document.createElement("button");
+            rotate.className = "row-action";
+            rotate.innerHTML = "↻ Rotate";
+            rotate.onclick = () => onRotate(p.data);
+            const revoke = document.createElement("button");
+            revoke.className = "row-action danger";
+            revoke.innerHTML = "✕ Revoke";
+            revoke.onclick = () => onRevoke(p.data.id);
+            wrap.append(rotate, revoke);
+            return wrap;
+          }
+        }
+      ], [onRotate, onRevoke]);
+
+      return (
+        <AgGrid
+          rowData={keys}
+          columnDefs={columnDefs}
+          height={Math.min(Math.max(keys.length, 1) * 44 + 48, 280)}
+          rowHeight={44}
+          headerHeight={36}
+          gridOptions={{ suppressCellFocus: true }}
+        />
+      );
+    }
+
+    // ===================== SESSIONS DATA =====================
+    const SESSIONS_DATA = [
+      { id: "s1", device: "MacBook Pro · Chrome 128", location: "Buenos Aires, AR", lastActive: "just now",   current: true },
+      { id: "s2", device: "iPhone · Safari iOS 18",   location: "Buenos Aires, AR", lastActive: "3 hours ago", current: false },
+      { id: "s3", device: "Windows · Edge 122",       location: "New York, US",     lastActive: "2 days ago",  current: false },
+    ];
+
+    function SessionsGrid({ onSignOut }) {
+      const columnDefs = useMemo(() => [
+        {
+          field: "device",
+          headerName: "Device",
+          flex: 2,
+          minWidth: 220,
+          cellRenderer: (p) => {
+            const wrap = document.createElement("div");
+            wrap.style.cssText = "display:flex;align-items:center;gap:8px;height:100%";
+            const txt = document.createElement("span");
+            txt.style.fontWeight = "600";
+            txt.textContent = p.value;
+            wrap.append(txt);
+            if (p.data.current) {
+              const chip = document.createElement("span");
+              chip.className = "session-badge";
+              chip.textContent = "current";
+              wrap.append(chip);
+            }
+            return wrap;
+          }
+        },
+        { field: "location",   headerName: "Location",    flex: 1, minWidth: 130 },
+        { field: "lastActive", headerName: "Last active", flex: 1, minWidth: 120 },
+        {
+          headerName: "",
+          width: 140,
+          sortable: false,
+          filter: false,
+          resizable: false,
+          cellRenderer: (p) => {
+            const wrap = document.createElement("div");
+            wrap.style.cssText = "display:flex;justify-content:flex-end;align-items:center;height:100%";
+            if (p.data.current) {
+              const txt = document.createElement("span");
+              txt.style.cssText = "font-size:12px;color:#727272";
+              txt.textContent = "—";
+              wrap.append(txt);
+            } else {
+              const btn = document.createElement("button");
+              btn.className = "row-action danger";
+              btn.innerHTML = "Sign out";
+              btn.onclick = () => onSignOut(p.data);
+              wrap.append(btn);
+            }
+            return wrap;
+          }
+        }
+      ], [onSignOut]);
+
+      return (
+        <AgGrid
+          rowData={SESSIONS_DATA}
+          columnDefs={columnDefs}
+          height={SESSIONS_DATA.length * 44 + 48}
+          rowHeight={44}
+          headerHeight={36}
+          gridOptions={{ suppressCellFocus: true }}
+        />
+      );
+    }
+
+    // ===================== SIDEBAR NAVIGATION =====================
+    function SideNav({ active, onPick, searchQuery, onSearchChange }) {
+      const grouped = {
+        account: SECTIONS.filter(s => s.group === "account"),
+        preferences: SECTIONS.filter(s => s.group === "preferences"),
+        workspace: SECTIONS.filter(s => s.group === "workspace"),
+      };
+
+      const filtered = searchQuery.trim()
+        ? SECTIONS.filter(s => s.label.toLowerCase().includes(searchQuery.toLowerCase()))
+        : null;
+
+      return (
+        <aside className="settings-sidebar">
+          <div className="sidebar-search">
+            <span className="search-icon"><Icon icon="ap-icon-search" /></span>
+            <input
+              type="text"
+              placeholder="Search settings..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+            />
+            <span className="shortcut">⌘K</span>
+          </div>
+
+          <nav className="settings-nav" aria-label="Settings sections">
+            {filtered ? (
+              filtered.map(s => (
+                <button
+                  key={s.id}
+                  className={active === s.id ? "active" : ""}
+                  onClick={() => onPick(s.id)}
+                >
+                  <span className="nav-icon"><Icon icon={s.icon} /></span>
+                  {s.label}
+                </button>
+              ))
+            ) : (
+              <>
+                <div className="nav-group">
+                  <div className="nav-group-label">Account</div>
+                  {grouped.account.map(s => (
+                    <button
+                      key={s.id}
+                      className={active === s.id ? "active" : ""}
+                      onClick={() => onPick(s.id)}
+                    >
+                      <span className="nav-icon"><Icon icon={s.icon} /></span>
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="nav-sep" />
+
+                <div className="nav-group">
+                  <div className="nav-group-label">Preferences</div>
+                  {grouped.preferences.map(s => (
+                    <button
+                      key={s.id}
+                      className={active === s.id ? "active" : ""}
+                      onClick={() => onPick(s.id)}
+                    >
+                      <span className="nav-icon"><Icon icon={s.icon} /></span>
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="nav-sep" />
+
+                <div className="nav-group">
+                  <div className="nav-group-label">Workspace</div>
+                  {grouped.workspace.map(s => (
+                    <button
+                      key={s.id}
+                      className={active === s.id ? "active" : ""}
+                      onClick={() => onPick(s.id)}
+                    >
+                      <span className="nav-icon"><Icon icon={s.icon} /></span>
+                      {s.label}
+                      {s.badge && <span className="nav-badge">{s.badge}</span>}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="nav-sep" />
+
+                <button
+                  className={"danger " + (active === "danger" ? "active" : "")}
+                  onClick={() => onPick("danger")}
+                >
+                  <span className="nav-icon"><Icon icon="ap-icon-alert" /></span>
+                  Danger zone
+                </button>
+              </>
+            )}
+          </nav>
+        </aside>
+      );
+    }
+
+    // ===================== PROFILE SECTION =====================
+    function ProfileSection({ markDirty }) {
+      const [name, setName] = useState("Julian Benitez");
+      const [email] = useState("jbenitez@alixpartners.com");
+      const [role, setRole] = useState("portfolio-manager");
+      const [bio, setBio] = useState("");
+      const [teams, setTeams] = useState(["equities-desk", "risk-review"]);
+      const [phone, setPhone] = useState("+1 (555) 123-4567");
+      const [timezone, setTimezone] = useState(["America/New_York"]);
+
+      const change = (setter) => (v) => { setter(v); markDirty(); };
+
+      return (
+        <div className="panel">
+          <div className="panel-header">
+            <h2><Icon icon="ap-icon-person" /> Profile</h2>
+            <p className="panel-desc">Your identity across the trading desk and on emailed reports.</p>
+          </div>
+
+          <div className="profile-avatar-section">
+            <div className="profile-avatar">JB</div>
+            <div className="profile-avatar-info">
+              <div className="name">{name}</div>
+              <div className="email">{email}</div>
+              <span className="role">Portfolio Manager</span>
+            </div>
+            <div style={{ marginLeft: "auto" }}>
+              <Ghost variant="default" icon="ap-icon-edit">Change photo</Ghost>
+            </div>
+          </div>
+
+          <div className="quick-stats">
+            <div className="quick-stat">
+              <div className="value">142</div>
+              <div className="label">Days active</div>
+            </div>
+            <div className="quick-stat">
+              <div className="value">2</div>
+              <div className="label">Teams</div>
+            </div>
+            <div className="quick-stat">
+              <div className="value">4</div>
+              <div className="label">API keys</div>
+            </div>
+          </div>
+
+          <div className="section">
+            <h3>Personal information</h3>
+            <p className="section-desc">Basic info that identifies you across the platform.</p>
+            <div className="form-grid">
+              <Input type="text" label="Full name" value={name} onChange={change(setName)} required />
+              <Input
+                type="text"
+                label="Work email"
+                value={email}
+                onChange={() => {}}
+                icon="ap-icon-mail"
+                iconPosition="left"
+                disabled
+                helpText="Managed by SSO"
+              />
+              <Input
+                type="text"
+                label="Phone"
+                value={phone}
+                onChange={change(setPhone)}
+                icon="ap-icon-phone"
+                iconPosition="left"
+                helpText="For SMS alerts (optional)"
+              />
+              <Dropdown
+                label="Timezone"
+                options={[
+                  { value: "America/New_York",    label: "Eastern (ET)" },
+                  { value: "America/Chicago",     label: "Central (CT)" },
+                  { value: "America/Denver",      label: "Mountain (MT)" },
+                  { value: "America/Los_Angeles", label: "Pacific (PT)" },
+                  { value: "Europe/London",       label: "London (GMT/BST)" },
+                ]}
+                value={timezone}
+                onChange={(v) => { setTimezone(v); markDirty(); }}
+              />
+            </div>
+          </div>
+
+          <div className="section">
+            <h3>Role & teams</h3>
+            <p className="section-desc">Determines your permissions and notification routing.</p>
+            <div className="form-grid">
+              <Dropdown
+                label="Role"
+                options={[
+                  { value: "portfolio-manager", label: "Portfolio Manager" },
+                  { value: "trader",            label: "Trader" },
+                  { value: "risk",              label: "Risk Analyst" },
+                  { value: "ops",               label: "Operations" },
+                  { value: "viewer",            label: "Viewer (read-only)" },
+                ]}
+                value={[role]}
+                onChange={(vs) => { setRole(vs[0] || role); markDirty(); }}
+              />
+              <Datepicker
+                label="Started"
+                value={new Date("2024-09-02")}
+                onChange={() => {}}
+                dateFormat="Mon DD, YYYY"
+                disabled
+                helpText="Provisioned by HR"
+              />
+              <div className="span-2">
+                <TagsFields
+                  label="Teams"
+                  options={[
+                    { value: "equities-desk", label: "Equities desk" },
+                    { value: "macro-desk",    label: "Macro desk" },
+                    { value: "risk-review",   label: "Risk review" },
+                    { value: "ops-rota",      label: "Ops rotation" },
+                  ]}
+                  value={teams}
+                  onChange={(v) => { setTeams(v); markDirty(); }}
+                  multiSelect
+                  searchable
+                  searchPlaceholder="Add team"
+                  helpText="Team alerts are routed to you"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="section">
+            <h3>About</h3>
+            <p className="section-desc">Optional bio visible when colleagues hover your avatar.</p>
+            <Textarea
+              label=""
+              value={bio}
+              onChange={change(setBio)}
+              rows={3}
+              placeholder="Tell your team a bit about yourself..."
+              fullWidth
+              resize="vertical"
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== SECURITY SECTION =====================
+    function SecuritySection({ markDirty }) {
+      const toast = useToast();
+      const [mfa, setMfa] = useState("authenticator");
+      const [sso, setSso] = useState(true);
+      const [sessionTimeout, setSessionTimeout] = useState(["8h"]);
+
+      return (
+        <div className="panel">
+          <div className="panel-header">
+            <h2><Icon icon="ap-icon-lock" /> Security</h2>
+            <p className="panel-desc">Authentication settings and active sessions. Some options are managed by IT.</p>
+          </div>
+
+          <Banner type="info" size="sm" content="SSO is enforced by your AlixPartners workspace. Contact IT to change organization policies." />
+
+          <div className="section">
+            <h3>Sign-in methods</h3>
+            <p className="section-desc">How you authenticate when signing in.</p>
+            <div className="form-grid">
+              <div>
+                <div style={{fontSize:11, color:"var(--ap-text-muted)", marginBottom:8, fontWeight:600, textTransform:"uppercase", letterSpacing:".06em"}}>Multi-factor method</div>
+                <RadioGroup value={mfa} onChange={(v) => { setMfa(v); markDirty(); }} orientation="vertical" ariaLabel="MFA method">
+                  <Radio label="Authenticator app (TOTP)" value="authenticator" />
+                  <Radio label="Security key (WebAuthn)" value="webauthn" />
+                  <Radio label="SMS one-time code" value="sms" />
+                </RadioGroup>
+              </div>
+              <div>
+                <div className="field-row" style={{ borderBottom: "none", padding: 0 }}>
+                  <div className="field-info">
+                    <div className="field-label">Force SSO on every session</div>
+                    <div className="field-desc">Managed by IT</div>
+                  </div>
+                  <div className="field-control">
+                    <Toggle checked={sso} onChange={() => {}} disabled />
+                  </div>
+                </div>
+                <div style={{height: 16}} />
+                <Dropdown
+                  label="Idle session timeout"
+                  options={[
+                    { value: "15m", label: "15 minutes" },
+                    { value: "1h",  label: "1 hour" },
+                    { value: "8h",  label: "8 hours" },
+                    { value: "24h", label: "24 hours" },
+                  ]}
+                  value={sessionTimeout}
+                  onChange={(v) => { setSessionTimeout(v); markDirty(); }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="section">
+            <h3>Active sessions</h3>
+            <p className="section-desc">Devices currently signed in to your account.</p>
+            <SessionsGrid onSignOut={(s) => toast.success(`Signed out · ${s.device}`)} />
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== NOTIFICATIONS SECTION =====================
+    function NotifSection({ markDirty }) {
+      const [channels, setChannels] = useState({ email: true, slack: true, sms: false, inapp: true });
+      const [events, setEvents] = useState({ fill: true, threshold: true, risk: true, daily: false, compliance: true });
+      const [severity, setSeverity] = useState(["warning"]);
+      const [quiet, setQuiet] = useState("off");
+      const set = (group, key) => (v) => { group(prev => ({ ...prev, [key]: !!v })); markDirty(); };
+
+      return (
+        <div className="panel">
+          <div className="panel-header">
+            <h2><Icon icon="ap-icon-notification-filled" /> Notifications</h2>
+            <p className="panel-desc">Control where and when you receive alerts. Changes apply immediately.</p>
+          </div>
+
+          <div className="section">
+            <h3>Delivery channels</h3>
+            <p className="section-desc">Where notifications are sent.</p>
+            <div className="field-row">
+              <div className="field-info">
+                <div className="field-label">Email</div>
+                <div className="field-desc">Sent to your work email</div>
+              </div>
+              <div className="field-control">
+                <Toggle checked={channels.email} onChange={set(setChannels, "email")} />
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field-info">
+                <div className="field-label">Slack DM</div>
+                <div className="field-desc">Direct messages in Slack</div>
+              </div>
+              <div className="field-control">
+                <Toggle checked={channels.slack} onChange={set(setChannels, "slack")} />
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field-info">
+                <div className="field-label">SMS</div>
+                <div className="field-desc">Text messages (carrier rates apply)</div>
+              </div>
+              <div className="field-control">
+                <Toggle checked={channels.sms} onChange={set(setChannels, "sms")} />
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field-info">
+                <div className="field-label">In-app banner</div>
+                <div className="field-desc">Toast notifications in the UI</div>
+              </div>
+              <div className="field-control">
+                <Toggle checked={channels.inapp} onChange={set(setChannels, "inapp")} />
+              </div>
+            </div>
+          </div>
+
+          <div className="section">
+            <h3>Event types</h3>
+            <p className="section-desc">Which events trigger notifications.</p>
+            <div className="field-row">
+              <div className="field-info">
+                <div className="field-label">Order fills</div>
+                <div className="field-desc">New fills on any position you hold</div>
+              </div>
+              <div className="field-control">
+                <Checkbox checked={events.fill} onChange={set(setEvents, "fill")} />
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field-info">
+                <div className="field-label">P&L threshold breach</div>
+                <div className="field-desc">Uses your dashboard threshold</div>
+              </div>
+              <div className="field-control">
+                <Checkbox checked={events.threshold} onChange={set(setEvents, "threshold")} />
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field-info">
+                <div className="field-label">Risk alerts</div>
+                <div className="field-desc">Concentration, VaR, and exposure warnings</div>
+              </div>
+              <div className="field-control">
+                <Checkbox checked={events.risk} onChange={set(setEvents, "risk")} />
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field-info">
+                <div className="field-label">Daily EOD summary</div>
+                <div className="field-desc">End-of-day portfolio recap</div>
+              </div>
+              <div className="field-control">
+                <Checkbox checked={events.daily} onChange={set(setEvents, "daily")} />
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field-info">
+                <div className="field-label">Compliance flags</div>
+                <div className="field-desc">Surveillance and compliance alerts</div>
+              </div>
+              <div className="field-control">
+                <Checkbox checked={events.compliance} onChange={set(setEvents, "compliance")} />
+              </div>
+            </div>
+          </div>
+
+          <div className="section">
+            <h3>Filtering</h3>
+            <p className="section-desc">Reduce noise by setting thresholds.</p>
+            <div className="form-grid">
+              <Dropdown
+                label="Minimum severity"
+                options={[
+                  { value: "info",    label: "Info — everything" },
+                  { value: "warning", label: "Warning and above" },
+                  { value: "error",   label: "Error only" },
+                ]}
+                value={severity}
+                onChange={(v) => { setSeverity(v); markDirty(); }}
+                helpText="Lower severity events are silent"
+              />
+              <div>
+                <div style={{fontSize:11, color:"var(--ap-text-muted)", marginBottom:8, fontWeight:600, textTransform:"uppercase", letterSpacing:".06em"}}>Quiet hours</div>
+                <RadioGroup value={quiet} onChange={(v) => { setQuiet(v); markDirty(); }} orientation="vertical" ariaLabel="Quiet hours">
+                  <Radio label="Off — always notify" value="off" />
+                  <Radio label="Outside trading hours (8 PM – 7 AM ET)" value="market" />
+                  <Radio label="Weekends only" value="weekend" />
+                </RadioGroup>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== DISPLAY SECTION =====================
+    function DisplaySection({ markDirty }) {
+      const [theme, setTheme] = useState("light");
+      const [density, setDensity] = useState("comfortable");
+      const [landing, setLanding] = useState(["dashboard"]);
+      const [timeFmt, setTimeFmt] = useState(["24h"]);
+      const [reduceMotion, setReduceMotion] = useState(false);
+      const [separators, setSeparators] = useState(true);
+      const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+      return (
+        <div className="panel">
+          <div className="panel-header">
+            <h2><Icon icon="ap-icon-color" /> Appearance</h2>
+            <p className="panel-desc">Customize how the app looks and feels. Stored per device.</p>
+          </div>
+
+          <div className="section">
+            <h3>Theme</h3>
+            <p className="section-desc">Choose your color scheme.</p>
+            <RadioGroup value={theme} onChange={(v) => { setTheme(v); markDirty(); }} orientation="horizontal" ariaLabel="Theme">
+              <Radio label="Light" value="light" />
+              <Radio label="Dark" value="dark" />
+              <Radio label="Auto (system)" value="auto" />
+            </RadioGroup>
+          </div>
+
+          <div className="section">
+            <h3>Density</h3>
+            <p className="section-desc">Control spacing and row heights.</p>
+            <RadioGroup value={density} onChange={(v) => { setDensity(v); markDirty(); }} orientation="horizontal" ariaLabel="Density">
+              <Radio label="Compact" value="compact" />
+              <Radio label="Comfortable" value="comfortable" />
+              <Radio label="Spacious" value="spacious" />
+            </RadioGroup>
+          </div>
+
+          <div className="section">
+            <h3>Behavior</h3>
+            <p className="section-desc">Motion and display preferences.</p>
+            <div className="field-row">
+              <div className="field-info">
+                <div className="field-label">Reduce motion</div>
+                <div className="field-desc">Disable animations and transitions</div>
+              </div>
+              <div className="field-control">
+                <Toggle checked={reduceMotion} onChange={(v) => { setReduceMotion(!!v); markDirty(); }} />
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field-info">
+                <div className="field-label">Thousands separators</div>
+                <div className="field-desc">Show commas in large numbers</div>
+              </div>
+              <div className="field-control">
+                <Toggle checked={separators} onChange={(v) => { setSeparators(!!v); markDirty(); }} />
+              </div>
+            </div>
+            <div className="field-row">
+              <div className="field-info">
+                <div className="field-label">Collapse sidebar by default</div>
+                <div className="field-desc">Start with minimized navigation</div>
+              </div>
+              <div className="field-control">
+                <Toggle checked={sidebarCollapsed} onChange={(v) => { setSidebarCollapsed(!!v); markDirty(); }} />
+              </div>
+            </div>
+          </div>
+
+          <div className="section">
+            <h3>Defaults</h3>
+            <p className="section-desc">Starting views and formats.</p>
+            <div className="form-grid">
+              <Dropdown
+                label="Landing page"
+                options={[
+                  { value: "dashboard", label: "Dashboard (EOD snapshot)" },
+                  { value: "positions", label: "Positions" },
+                  { value: "trades",    label: "Trades" },
+                  { value: "reports",   label: "Reports" },
+                ]}
+                value={landing}
+                onChange={(v) => { setLanding(v); markDirty(); }}
+              />
+              <Dropdown
+                label="Time format"
+                options={[
+                  { value: "12h", label: "12-hour (4:00 PM ET)" },
+                  { value: "24h", label: "24-hour (16:00 ET)" },
+                ]}
+                value={timeFmt}
+                onChange={(v) => { setTimeFmt(v); markDirty(); }}
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== TRADING DEFAULTS SECTION =====================
+    function TradingSection({ markDirty }) {
+      const [size, setSize] = useState("100");
+      const [orderType, setOrderType] = useState(["limit"]);
+      const [confirm, setConfirm] = useState(true);
+      const [slippage, setSlippage] = useState("0.10");
+      const [lossCap, setLossCap] = useState("250000");
+      const [lookback, setLookback] = useState(new Date("2026-01-01"));
+
+      return (
+        <div className="panel">
+          <div className="panel-header">
+            <h2><Icon icon="ap-icon-financial" /> Trading defaults</h2>
+            <p className="panel-desc">Pre-fill the order ticket. Each value can be overridden per trade.</p>
+          </div>
+
+          <Banner type="warning" size="sm" content="These defaults apply to new orders only. Open orders are not changed retroactively." />
+
+          <div className="section">
+            <h3>Order configuration</h3>
+            <p className="section-desc">Default values for the order form.</p>
+            <div className="form-grid">
+              <Input
+                type="number"
+                label="Default position size"
+                value={size}
+                onChange={(v) => { setSize(v); markDirty(); }}
+                icon="ap-icon-aggregation"
+                iconPosition="left"
+                helpText="Number of shares"
+              />
+              <Dropdown
+                label="Order type"
+                options={[
+                  { value: "market", label: "Market" },
+                  { value: "limit",  label: "Limit" },
+                  { value: "stop",   label: "Stop" },
+                  { value: "twap",   label: "TWAP" },
+                ]}
+                value={orderType}
+                onChange={(v) => { setOrderType(v); markDirty(); }}
+              />
+              <Input
+                type="number"
+                label="Max slippage (%)"
+                value={slippage}
+                onChange={(v) => { setSlippage(v); markDirty(); }}
+                helpText="Limit orders reject if exceeded"
+              />
+              <Input
+                type="number"
+                label="Daily loss cap ($)"
+                value={lossCap}
+                onChange={(v) => { setLossCap(v); markDirty(); }}
+                icon="ap-icon-financial"
+                iconPosition="left"
+              />
+            </div>
+          </div>
+
+          <div className="section">
+            <h3>Backtest settings</h3>
+            <p className="section-desc">Defaults for running historical simulations.</p>
+            <div className="form-grid">
+              <Datepicker
+                label="Default backtest start"
+                value={lookback}
+                onChange={(d) => { d && setLookback(d); markDirty(); }}
+                dateFormat="Mon DD, YYYY"
+              />
+              <div style={{ display: "flex", alignItems: "end" }}>
+                <div className="field-row" style={{ flex: 1, borderBottom: "none", padding: 0 }}>
+                  <div className="field-info">
+                    <div className="field-label">Confirm before submit</div>
+                    <div className="field-desc">Show confirmation dialog</div>
+                  </div>
+                  <div className="field-control">
+                    <Toggle checked={confirm} onChange={(v) => { setConfirm(!!v); markDirty(); }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== DATA SOURCES SECTION =====================
+    function SourcesSection({ markDirty }) {
+      const toast = useToast();
+      const [sources, setSources] = useState({
+        bloomberg: { on: true,  status: "live" },
+        factset:   { on: true,  status: "live" },
+        refinitiv: { on: true,  status: "error" },
+        yahoo:     { on: false, status: "stale" },
+        internal:  { on: true,  status: "live" },
+      });
+      const toggle = (key) => (v) => { setSources(s => ({...s, [key]: { ...s[key], on: !!v }})); markDirty(); };
+
+      const meta = {
+        bloomberg: { name: "Bloomberg B-PIPE",   desc: "Reference data & real-time quotes" },
+        factset:   { name: "FactSet AI-Ready",   desc: "Fundamentals & ownership data" },
+        refinitiv: { name: "Refinitiv Eikon",    desc: "Cross-asset pricing & corp actions" },
+        yahoo:     { name: "Yahoo Finance",      desc: "Free fallback, quotes only" },
+        internal:  { name: "AlixPartners Vault", desc: "Internal positions & desk fills" },
+      };
+
+      const hasError = Object.values(sources).some(s => s.status === "error");
+
+      return (
+        <div className="panel">
+          <div className="panel-header">
+            <h2><Icon icon="ap-icon-sync" /> Data sources</h2>
+            <p className="panel-desc">Connections that feed prices, fundamentals, and fills into the dashboard.</p>
+          </div>
+
+          {hasError && (
+            <Banner
+              type="error"
+              size="md"
+              isFullWidth
+              content="Refinitiv Eikon connection failed at 3:42 PM ET. Falling back to Bloomberg quotes."
+              onClose={() => {}}
+            />
+          )}
+
+          <div className="section">
+            <h3>Connected feeds</h3>
+            <p className="section-desc">Toggle sources on or off. Disabled sources show stale data.</p>
+            {Object.keys(sources).map(key => (
+              <div className="source-card" key={key}>
+                <span className="src-icon"><Icon icon="ap-icon-sync" /></span>
+                <div className="src-info">
+                  <div className="src-name">{meta[key].name}</div>
+                  <div className="src-desc">{meta[key].desc}</div>
+                </div>
+                <div>
+                  <Tag
+                    type={sources[key].status === "live" ? "success" : sources[key].status === "error" ? "error" : "warning"}
+                    size="sm"
+                    structure="solid"
+                    label={sources[key].status.charAt(0).toUpperCase() + sources[key].status.slice(1)}
+                  />
+                </div>
+                <div className="src-actions">
+                  <Toggle checked={sources[key].on} onChange={toggle(key)} />
+                  <Ghost variant="default" icon="ap-icon-settings" onClick={() => toast.success(`Opened ${meta[key].name} config`)}>Configure</Ghost>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="section" style={{display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap: "wrap", gap: 12}}>
+            <span style={{fontSize:13, color:"var(--ap-text-muted)"}}>Need another feed? Add a custom one.</span>
+            <SplitButton
+              type="secondary"
+              trigger="split"
+              size="md"
+              buttonLabel="Add source"
+              actionOptions={[
+                { value: "rest", label: "REST endpoint",   action: () => toast.success("New REST source draft") },
+                { value: "ws",   label: "WebSocket feed",  action: () => toast.success("New WebSocket source draft") },
+                { value: "csv",  label: "CSV (manual upload)", action: () => toast.success("New CSV source draft") },
+              ]}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== API KEYS SECTION =====================
+    function ApiSection({ markDirty }) {
+      const toast = useToast();
+      const [keys, setKeys] = useState([
+        { id: "1", name: "Production data sync", scope: "read",  created: "Jan 12, 2026", lastUsed: "2 min ago",  prefix: "ak_live_4f2a…" },
+        { id: "2", name: "Backtest runner",      scope: "read",  created: "Dec 04, 2025", lastUsed: "1 hr ago",   prefix: "ak_live_8b1c…" },
+        { id: "3", name: "Order desk webhook",   scope: "write", created: "Nov 21, 2025", lastUsed: "5 min ago",  prefix: "ak_live_d9e7…" },
+        { id: "4", name: "Legacy reports CLI",   scope: "read",  created: "Aug 02, 2025", lastUsed: "30 days ago", prefix: "ak_live_2a3f…" },
+      ]);
+      const [newName, setNewName] = useState("");
+      const [newScope, setNewScope] = useState(["read"]);
+      const [newKeyOpen, setNewKeyOpen] = useState(false);
+      const [revokeId, setRevokeId] = useState(null);
+      const [createdKey, setCreatedKey] = useState(null);
+      const [reveal, setReveal] = useState(false);
+
+      const create = () => {
+        if (!newName.trim()) { toast.error("Name is required."); return; }
+        const k = {
+          id: String(Date.now()),
+          name: newName.trim(),
+          scope: newScope[0] || "read",
+          created: "today",
+          lastUsed: "—",
+          prefix: "ak_live_" + Math.random().toString(36).slice(2, 6) + "…"
+        };
+        const secret = "ak_live_" + Math.random().toString(36).slice(2, 30);
+        setKeys([k, ...keys]);
+        setCreatedKey(secret);
+        setNewName("");
+        setNewKeyOpen(false);
+        markDirty();
+      };
+
+      const revoke = () => {
+        setKeys(keys.filter(k => k.id !== revokeId));
+        setRevokeId(null);
+        toast.success("API key revoked.");
+        markDirty();
+      };
+
+      return (
+        <div className="panel">
+          <div className="panel-header">
+            <h2><Icon icon="ap-icon-key" /> API keys</h2>
+            <p className="panel-desc">Programmatic access for backtests, sync jobs, and webhooks.</p>
+          </div>
+
+          <Banner type="warning" size="sm" content="Treat API keys like passwords. Rotate any key that may have leaked immediately." />
+
+          <div className="section">
+            <h3>Create new key</h3>
+            <p className="section-desc">Generate a new API key for external integrations.</p>
+            <div className="form-grid">
+              <Input
+                type="text"
+                label="Name"
+                value={newName}
+                onChange={setNewName}
+                placeholder="e.g. PnL backtest job"
+              />
+              <Dropdown
+                label="Scope"
+                options={[
+                  { value: "read",  label: "Read only" },
+                  { value: "write", label: "Read & write" },
+                ]}
+                value={newScope}
+                onChange={setNewScope}
+                helpText="Write access can modify orders"
+              />
+              <div className="span-2" style={{ display: "flex", justifyContent: "flex-end" }}>
+                <Button type="primary" size="md" icon="ap-icon-key" onClick={() => setNewKeyOpen(true)}>
+                  Generate key
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="section">
+            <h3>Existing keys</h3>
+            <p className="section-desc">Manage your active API keys. Keys older than 90 days should be rotated.</p>
+            <ApiKeysGrid
+              keys={keys}
+              onRotate={(k) => toast.success(`Rotated "${k.name}"`)}
+              onRevoke={(id) => setRevokeId(id)}
+            />
+          </div>
+
+          <Dialog
+            isOpen={newKeyOpen}
+            onClose={() => setNewKeyOpen(false)}
+            title="Generate API key"
+            description={`Create a new ${newScope[0] || "read"}-only key named "${newName || "untitled"}". The full secret will be shown once — you won't see it again.`}
+            confirmButtonText="Generate"
+            cancelButtonText="Cancel"
+            onConfirm={create}
+            onCancel={() => setNewKeyOpen(false)}
+          />
+
+          <Dialog
+            isOpen={!!createdKey}
+            onClose={() => { setCreatedKey(null); setReveal(false); }}
+            title="Your new API key"
+            description={(
+              <div>
+                <p style={{margin:"0 0 12px", color: "var(--ap-text-muted)", fontSize: 13}}>Copy it now. We don't store the plain-text key — if you lose it, generate a new one.</p>
+                <div style={{display:"flex", gap:8, alignItems:"end"}}>
+                  <div style={{flex:1}}>
+                    <Input type={reveal ? "text" : "password"} label="Secret" value={createdKey || ""} onChange={() => {}} />
+                  </div>
+                  <Button type="secondary" size="md" icon={reveal ? "ap-icon-hide" : "ap-icon-show"} onClick={() => setReveal(r => !r)}>
+                    {reveal ? "Hide" : "Show"}
+                  </Button>
+                  <Button type="secondary" size="md" icon="ap-icon-copy" onClick={() => { navigator.clipboard?.writeText(createdKey || ""); toast.success("Copied!"); }}>
+                    Copy
+                  </Button>
+                </div>
+              </div>
+            )}
+            confirmButtonText="I've saved it"
+            onConfirm={() => { setCreatedKey(null); setReveal(false); }}
+          />
+
+          <Dialog
+            isOpen={!!revokeId}
+            onClose={() => setRevokeId(null)}
+            title="Revoke this API key?"
+            description="Any service using this key will start receiving 401 errors immediately. This action cannot be undone."
+            confirmButtonText="Revoke key"
+            confirmButtonVariant="danger"
+            cancelButtonText="Keep it"
+            onConfirm={revoke}
+            onCancel={() => setRevokeId(null)}
+          />
+        </div>
+      );
+    }
+
+    // ===================== DANGER ZONE SECTION =====================
+    function DangerSection({ markDirty }) {
+      const toast = useToast();
+      const [open, setOpen] = useState(null);
+      const [confirmText, setConfirmText] = useState("");
+
+      const actions = [
+        { id: "reset",     title: "Reset preferences",      desc: "Restores theme, density, and notification settings to defaults. Watchlists and trading defaults are preserved.", verb: "RESET" },
+        { id: "watchlist", title: "Delete all watchlists",  desc: "Permanently deletes every saved watchlist on this account. Tracked symbols on the dashboard will go empty.", verb: "DELETE" },
+        { id: "data",      title: "Export & wipe local data", desc: "Downloads a JSON snapshot of preferences and then clears local browser storage for this app.", verb: "WIPE" },
+        { id: "account",   title: "Close account",          desc: "Permanently deactivates your TradingDesk access. Open orders are not closed automatically — coordinate with the desk first.", verb: "CLOSE" },
+      ];
+
+      const currentAction = actions.find(a => a.id === open);
+      const canConfirm = currentAction && confirmText.toUpperCase() === currentAction.verb;
+
+      return (
+        <div className="panel">
+          <div className="panel-header">
+            <h2><Icon icon="ap-icon-alert" /> Danger zone</h2>
+            <p className="panel-desc">Destructive actions that cannot be undone from the UI.</p>
+          </div>
+
+          <Banner type="error" size="md" isFullWidth content="Read each description carefully. Some actions affect live trading positions." />
+
+          <div className="section">
+            {actions.map(a => (
+              <div className="danger-action" key={a.id}>
+                <div>
+                  <h4>{a.title}</h4>
+                  <p>{a.desc}</p>
+                </div>
+                <Button type="secondary" variant="danger" size="md" onClick={() => { setOpen(a.id); setConfirmText(""); }}>
+                  {a.verb.charAt(0) + a.verb.slice(1).toLowerCase()}
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          {currentAction && (
+            <Dialog
+              isOpen={!!open}
+              onClose={() => setOpen(null)}
+              title={`${currentAction.title}?`}
+              description={(
+                <div>
+                  <p style={{margin:"0 0 12px", color: "var(--ap-text-muted)", fontSize: 13}}>{currentAction.desc}</p>
+                  <Input
+                    type="text"
+                    label={`Type "${currentAction.verb}" to confirm`}
+                    value={confirmText}
+                    onChange={setConfirmText}
+                    placeholder={currentAction.verb}
+                  />
+                </div>
+              )}
+              confirmButtonText={currentAction.verb.charAt(0) + currentAction.verb.slice(1).toLowerCase()}
+              confirmButtonVariant="danger"
+              confirmButtonDisabled={!canConfirm}
+              cancelButtonText="Cancel"
+              onConfirm={() => { setOpen(null); toast.warning(`${currentAction.title} executed.`); setConfirmText(""); }}
+              onCancel={() => setOpen(null)}
+            />
+          )}
+        </div>
+      );
+    }
+
+    // ===================== MAIN APP =====================
+    function SettingsApp() {
+      const toast = useToast();
+      const initial = (new URLSearchParams(location.search).get("section")) || (location.hash.replace(/^#/, "")) || "profile";
+      const [active, setActive] = useState(SECTIONS.some(s => s.id === initial) || initial === "danger" ? initial : "profile");
+      const [dirty, setDirty] = useState(false);
+      const [saving, setSaving] = useState(false);
+      const [searchQuery, setSearchQuery] = useState("");
+      const markDirty = () => setDirty(true);
+
+      const save = () => {
+        setSaving(true);
+        setTimeout(() => { setSaving(false); setDirty(false); toast.success("Settings saved."); }, 600);
+      };
+      const discard = () => { setDirty(false); toast.warning("Changes discarded."); };
+
+      useEffect(() => {
+        const handler = (e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+            e.preventDefault();
+            document.querySelector(".sidebar-search input")?.focus();
+          }
+          if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+            e.preventDefault();
+            if (dirty && !saving) save();
+          }
+        };
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
+      }, [dirty, saving]);
+
+      const content = useMemo(() => {
+        switch (active) {
+          case "profile":  return <ProfileSection markDirty={markDirty} />;
+          case "security": return <SecuritySection markDirty={markDirty} />;
+          case "notifs":   return <NotifSection markDirty={markDirty} />;
+          case "display":  return <DisplaySection markDirty={markDirty} />;
+          case "trading":  return <TradingSection markDirty={markDirty} />;
+          case "sources":  return <SourcesSection markDirty={markDirty} />;
+          case "api":      return <ApiSection markDirty={markDirty} />;
+          case "danger":   return <DangerSection markDirty={markDirty} />;
+          default:         return null;
+        }
+      }, [active]);
+
+      return (
+        <>
+          <NavBar
+            projectName="TradingDesk"
+            projectLogoIcon="ap-icon-logo-vault"
+            activeMenuItemHref="#settings"
+            menuItems={[
+              { label: "Dashboard", href: "#dashboard" },
+              { label: "Positions", href: "#positions" },
+              { label: "Trades",    href: "#trades" },
+              { label: "Reports",   href: "#reports" },
+              { label: "Settings",  href: "#settings" },
+            ]}
+            additionalItems={{
+              notifications: {
+                count: 0,
+                content: <div style={{padding:12, minWidth:220}}><strong style={{fontSize:13}}>No new notifications</strong></div>,
+              },
+              userProfile: {
+                initials: "JB",
+                content: (
+                  <div style={{padding:12, minWidth:220}}>
+                    <strong>Julian Benitez</strong>
+                    <div style={{fontSize:12, color:"var(--ap-text-muted)"}}>jbenitez@alixpartners.com</div>
+                  </div>
+                ),
+              },
+            }}
+          />
+
+          <div className="page-wrap">
+            <header className="page-header">
+              <div className="page-header__left">
+                <h1>Settings</h1>
+                <p className="subtitle">Manage your account, preferences, and integrations.</p>
+              </div>
+              <div className="page-header__right">
+                <Ghost variant="default" icon="ap-icon-help">Help</Ghost>
+              </div>
+            </header>
+
+            <div className="settings-shell">
+              <SideNav
+                active={active}
+                onPick={setActive}
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+              />
+              <main>{content}</main>
+            </div>
+          </div>
+
+          <footer className="save-bar" role="contentinfo" aria-label="Settings save bar">
+            <div className={"status-indicator" + (dirty ? " dirty" : "")} aria-live="polite">
+              <span className="dot" />
+              {dirty ? "Unsaved changes" : "All changes saved"}
+            </div>
+            <Ghost variant="cancel" noIcon disabled={!dirty || saving} onClick={discard}>Discard</Ghost>
+            <Button type="primary" size="md" icon="ap-icon-check" loading={saving} disabled={!dirty} onClick={save}>
+              Save changes
+            </Button>
+          </footer>
+        </>
+      );
+    }
+
+    function App() {
+      return (
+        <ToastProvider maxSnack={3} autoHideDuration={3500} anchorOrigin={{ vertical: "bottom", horizontal: "right" }}>
+          <SettingsApp />
+        </ToastProvider>
+      );
+    }
+
+    createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
