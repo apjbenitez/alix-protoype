@@ -85,12 +85,22 @@
       font-size: 24px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2;
       color: var(--ap-text);
     }
-    .page-header__title .sub {
+    .page-header__title .title-row {
+      display: flex; align-items: center; gap: var(--ap-space-2); flex-wrap: wrap;
+    }
+    .page-header__title .meta-row {
       margin: 6px 0 0;
       display: flex; flex-wrap: wrap; align-items: center; gap: var(--ap-space-2);
       color: var(--ap-text-muted); font-size: 13px;
     }
-    .page-header__title .sub .sep { color: var(--ap-border); }
+    .page-header__title .meta-row .date {
+      color: var(--ap-text-2);
+      font-weight: 500;
+    }
+    .page-header__title .meta-row .metric {
+      color: var(--ap-text-muted);
+    }
+    .page-header__title .meta-row .sep { color: var(--ap-border); }
     .page-header__actions {
       display: flex; align-items: flex-end; gap: var(--ap-space-2);
       flex-wrap: wrap; justify-content: flex-end;
@@ -158,8 +168,11 @@
       border: 1px solid var(--ap-border);
       border-radius: var(--ap-radius);
       padding: var(--ap-space-4);
+      min-width: 0;
+      overflow: hidden;
     }
     .panel + .panel, .panel-stack > * + * { margin-top: var(--ap-space-4); }
+    .panel-stack { min-width: 0; }
     .panel-head {
       display: flex; align-items: center; justify-content: space-between;
       gap: var(--ap-space-3); flex-wrap: wrap;
@@ -186,17 +199,20 @@
     .stack-sm > * + * { margin-top: var(--ap-space-2); }
 
     /* ---------- movers ---------- */
-    .movers { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ap-space-4); }
+    .movers { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--ap-space-4); min-width: 0; overflow: hidden; }
+    .movers > div { min-width: 0; overflow: hidden; }
     .movers .col-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--ap-space-2); }
     .movers .col-head strong { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
     .movers .row {
       display: flex; justify-content: space-between; align-items: center;
       padding: var(--ap-space-2) 0;
       border-bottom: 1px solid var(--ap-border-soft);
+      min-width: 0;
     }
+    .movers .row > div { min-width: 0; }
     .movers .row:last-child { border-bottom: none; }
-    .sym { font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .02em; font-size: 13px; color: var(--ap-text); }
-    .qty { color: var(--ap-text-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+    .sym { font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: .02em; font-size: 13px; color: var(--ap-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .qty { color: var(--ap-text-muted); font-size: 12px; font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* ---------- positions table (AG Grid) ---------- */
     .pl-pos { color: var(--ap-success-2); font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -234,6 +250,12 @@
       --ag-control-panel-background-color: var(--ap-bg-surface);
       --ag-border-radius: var(--ap-radius);
       --ag-cell-horizontal-padding: var(--ap-space-3);
+      width: 100%;
+      min-width: 0;
+    }
+    .ag-theme-quartz .ag-root-wrapper {
+      min-width: 0;
+      overflow: hidden;
     }
     .ag-theme-quartz .ag-header-cell-text {
       font-weight: 600; text-transform: uppercase; letter-spacing: .04em; font-size: 11px;
@@ -381,6 +403,62 @@
     .cmp-tag--pass    { background: var(--ap-success-bg); color: var(--ap-success-2); }
     .cmp-tag--warning { background: var(--ap-warning-bg); color: var(--ap-warning); }
     .cmp-tag--fail    { background: var(--ap-error-bg);   color: var(--ap-error-2); }
+
+    /* ---------- performance attribution bars ---------- */
+    .attribution-list { display: flex; flex-direction: column; gap: var(--ap-space-2); }
+    .attribution-row {
+      display: grid;
+      grid-template-columns: 140px 1fr 90px 70px;
+      gap: var(--ap-space-3);
+      align-items: center;
+      padding: var(--ap-space-2) 0;
+      border-bottom: 1px solid var(--ap-border-soft);
+    }
+    .attribution-row:last-child { border-bottom: none; }
+    .attribution-row__name { font-weight: 600; color: var(--ap-text); font-size: 13px; }
+    .attribution-bar {
+      position: relative; height: 10px; width: 100%;
+      background: var(--ap-bg-muted); border-radius: var(--ap-radius-sm); overflow: hidden;
+    }
+    .attribution-bar__fill {
+      position: absolute; top: 0; height: 100%;
+      border-radius: var(--ap-radius-sm);
+    }
+    .attribution-bar__fill--pos { background: var(--ap-success); left: 50%; }
+    .attribution-bar__fill--neg { background: var(--ap-error); right: 50%; }
+    .attribution-bar__center {
+      position: absolute; top: -2px; bottom: -2px; left: 50%;
+      width: 2px; background: var(--ap-text-soft); transform: translateX(-50%);
+    }
+
+    /* ---------- factor exposure bars (centered at 0) ---------- */
+    .factor-list { display: flex; flex-direction: column; gap: var(--ap-space-3); }
+    .factor-row {
+      display: grid;
+      grid-template-columns: 100px 1fr 60px;
+      gap: var(--ap-space-3);
+      align-items: center;
+    }
+    .factor-row__label { font-size: 13px; font-weight: 500; color: var(--ap-text); }
+    .factor-bar {
+      position: relative; height: 12px; width: 100%;
+      background: var(--ap-bg-muted); border-radius: var(--ap-radius-sm); overflow: visible;
+    }
+    .factor-bar__fill {
+      position: absolute; top: 0; height: 100%;
+      border-radius: var(--ap-radius-sm);
+    }
+    .factor-bar__fill--pos { background: var(--ap-primary-2); left: 50%; }
+    .factor-bar__fill--neg { background: var(--ap-warning); right: 50%; }
+    .factor-bar__center {
+      position: absolute; top: -2px; bottom: -2px; left: 50%;
+      width: 2px; background: var(--ap-text); transform: translateX(-50%);
+      z-index: 1;
+    }
+    .factor-row__value {
+      text-align: right; font-variant-numeric: tabular-nums;
+      font-size: 12px; font-weight: 600; color: var(--ap-text-2);
+    }
 
     @media (max-width: 700px) {
       .alloc-row {
@@ -764,6 +842,33 @@
       { sym: "XOM",   sector: "Energy",     mv:    68880, marginalVar:   3400, pctOfTotal:  1.9, beta: 0.74 },
       { sym: "LLY",   sector: "Healthcare", mv:   107912, marginalVar:   3100, pctOfTotal:  1.7, beta: 0.55 },
     ];
+
+    // ----------- performance data (Performance tab) -----------
+    const PERFORMANCE_DATA = {
+      mtdReturn: 4.32,
+      ytdReturn: 12.8,
+      sharpeRatio: 1.42,
+      maxDrawdown: -3.2,
+      attribution: [
+        { source: "Sector Allocation", value: 124000, pct: 1.8 },
+        { source: "Stock Selection", value: 89000, pct: 1.3 },
+        { source: "Timing", value: -22000, pct: -0.32 },
+        { source: "Currency", value: 8500, pct: 0.12 },
+      ],
+      sleevePerformance: [
+        { name: "Core Long Equity", returnPct: 5.2, contribution: 156000, vsTarget: 1.4, status: "outperforming" },
+        { name: "Hedge Overlay", returnPct: -1.1, contribution: -33000, vsTarget: 0.2, status: "on_track" },
+        { name: "Sector Rotation", returnPct: 3.8, contribution: 76000, vsTarget: -0.5, status: "underperforming" },
+        { name: "Event Driven", returnPct: 2.1, contribution: 42000, vsTarget: 0.8, status: "on_track" },
+      ],
+      factorExposures: [
+        { factor: "Momentum", exposure: 0.42 },
+        { factor: "Value", exposure: -0.18 },
+        { factor: "Quality", exposure: 0.65 },
+        { factor: "Volatility", exposure: -0.31 },
+        { factor: "Size", exposure: 0.22 },
+      ],
+    };
 
     const sectorColor = (s) =>
       s === "Tech" ? "blue" :
@@ -1588,6 +1693,195 @@
       );
     }
 
+    // ----------- Performance tab -----------
+    function PerformanceSummary() {
+      const { mtdReturn, ytdReturn, sharpeRatio, maxDrawdown } = PERFORMANCE_DATA;
+      return (
+        <div className="summary-strip">
+          <div className="summary-card">
+            <div className="summary-label">MTD Return</div>
+            <div className={`summary-value ${mtdReturn >= 0 ? "pl-pos" : "pl-neg"}`}>
+              {mtdReturn >= 0 ? "+" : ""}{mtdReturn.toFixed(2)}%
+            </div>
+            <div className="summary-sub">Month-to-date</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">YTD Return</div>
+            <div className={`summary-value ${ytdReturn >= 0 ? "pl-pos" : "pl-neg"}`}>
+              {ytdReturn >= 0 ? "+" : ""}{ytdReturn.toFixed(1)}%
+            </div>
+            <div className="summary-sub">Year-to-date</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Sharpe Ratio</div>
+            <div className="summary-value">{sharpeRatio.toFixed(2)}</div>
+            <div className="summary-sub">Rolling 60-day</div>
+          </div>
+          <div className="summary-card">
+            <div className="summary-label">Max Drawdown</div>
+            <div className="summary-value pl-neg">{maxDrawdown.toFixed(1)}%</div>
+            <div className="summary-sub">Since YTD high</div>
+          </div>
+        </div>
+      );
+    }
+
+    function PerformanceAttribution() {
+      const { attribution } = PERFORMANCE_DATA;
+      const maxAbsValue = Math.max(...attribution.map(a => Math.abs(a.value)));
+      return (
+        <div className="panel">
+          <h2><Icon icon="ap-icon-bar" /> Performance Attribution</h2>
+          <div className="attribution-list">
+            {attribution.map(a => {
+              const barWidth = (Math.abs(a.value) / maxAbsValue) * 50;
+              const isPos = a.value >= 0;
+              return (
+                <div className="attribution-row" key={a.source}>
+                  <div className="attribution-row__name">{a.source}</div>
+                  <div className="attribution-bar">
+                    <div className="attribution-bar__center" />
+                    <div
+                      className={`attribution-bar__fill ${isPos ? "attribution-bar__fill--pos" : "attribution-bar__fill--neg"}`}
+                      style={{ width: `${barWidth}%` }}
+                    />
+                  </div>
+                  <div className={`alloc-row__num ${isPos ? "pl-pos" : "pl-neg"}`}>{fmtPnL(a.value)}</div>
+                  <div className={`alloc-row__num ${a.pct >= 0 ? "pl-pos" : "pl-neg"}`}>
+                    {a.pct >= 0 ? "+" : ""}{a.pct.toFixed(2)}%
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    function SleevePerformanceTable() {
+      const toast = useToast();
+      const { sleevePerformance } = PERFORMANCE_DATA;
+
+      const columnDefs = useMemo(() => [
+        {
+          field: "name", headerName: "Sleeve", pinned: "left", flex: 1, minWidth: 180,
+          cellStyle: { fontWeight: 600, color: "#28292c" },
+        },
+        {
+          field: "returnPct", headerName: "Return %", type: "rightAligned", width: 110,
+          valueFormatter: (p) => (p.value >= 0 ? "+" : "") + p.value.toFixed(1) + "%",
+          cellRenderer: (p) => {
+            const span = document.createElement("span");
+            span.className = p.value >= 0 ? "pl-pos" : "pl-neg";
+            span.textContent = (p.value >= 0 ? "+" : "") + p.value.toFixed(1) + "%";
+            return span;
+          },
+        },
+        {
+          field: "contribution", headerName: "Contribution $", type: "rightAligned", width: 140,
+          cellRenderer: (p) => {
+            const span = document.createElement("span");
+            span.className = p.value >= 0 ? "pl-pos" : "pl-neg";
+            span.textContent = fmtPnL(p.value);
+            return span;
+          },
+        },
+        {
+          field: "vsTarget", headerName: "vs Target", type: "rightAligned", width: 110,
+          valueFormatter: (p) => (p.value >= 0 ? "+" : "") + p.value.toFixed(1) + " pp",
+          cellRenderer: (p) => {
+            const span = document.createElement("span");
+            span.style.fontVariantNumeric = "tabular-nums";
+            span.style.color = p.value >= 0 ? "var(--ap-success-2)" : "var(--ap-error-2)";
+            span.textContent = (p.value >= 0 ? "+" : "") + p.value.toFixed(1) + " pp";
+            return span;
+          },
+        },
+        {
+          field: "status", headerName: "Status", width: 140,
+          cellRenderer: (p) => {
+            const wrap = document.createElement("span");
+            if (p.value === "outperforming") {
+              wrap.innerHTML = '<span class="cmp-tag cmp-tag--pass">Outperforming</span>';
+            } else if (p.value === "underperforming") {
+              wrap.innerHTML = '<span class="alloc-tag alloc-tag--over">Underperforming</span>';
+            } else {
+              wrap.innerHTML = '<span class="alloc-tag alloc-tag--on">On Track</span>';
+            }
+            return wrap;
+          },
+        },
+        {
+          headerName: "", width: 80, sortable: false, filter: false, resizable: false, suppressMovable: true,
+          cellRenderer: (p) => {
+            const btn = document.createElement("button");
+            btn.className = "view-link";
+            btn.textContent = "Detail";
+            btn.addEventListener("click", () => toast.success(`Sleeve detail: ${p.data.name}`));
+            return btn;
+          },
+        },
+      ], [toast]);
+
+      return (
+        <div className="panel">
+          <div className="panel-head">
+            <h2><Icon icon="ap-icon-list" /> Strategy Performance</h2>
+            <span style={{fontSize: 12, color: "var(--ap-text-muted)"}}>{sleevePerformance.length} sleeves</span>
+          </div>
+          <AgGrid
+            rowData={sleevePerformance}
+            columnDefs={columnDefs}
+            height={sleevePerformance.length * 44 + 60}
+            rowHeight={44}
+            headerHeight={36}
+            gridOptions={{ suppressCellFocus: true }}
+          />
+        </div>
+      );
+    }
+
+    function FactorExposures() {
+      const { factorExposures } = PERFORMANCE_DATA;
+      const maxAbsExposure = Math.max(...factorExposures.map(f => Math.abs(f.exposure)));
+      return (
+        <div className="panel">
+          <h2><Icon icon="ap-icon-bar" /> Factor Exposures</h2>
+          <div className="factor-list">
+            {factorExposures.map(f => {
+              const barWidth = (Math.abs(f.exposure) / maxAbsExposure) * 45;
+              const isPos = f.exposure >= 0;
+              return (
+                <div className="factor-row" key={f.factor}>
+                  <div className="factor-row__label">{f.factor}</div>
+                  <div className="factor-bar">
+                    <div className="factor-bar__center" />
+                    <div
+                      className={`factor-bar__fill ${isPos ? "factor-bar__fill--pos" : "factor-bar__fill--neg"}`}
+                      style={{ width: `${barWidth}%` }}
+                    />
+                  </div>
+                  <div className="factor-row__value">
+                    {isPos ? "+" : ""}{f.exposure.toFixed(2)}σ
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    function PerformanceView() {
+      return (
+        <>
+          <PerformanceSummary />
+          <PerformanceAttribution />
+          <SleevePerformanceTable />
+        </>
+      );
+    }
+
     function LoadingTab() {
       return (
         <div className="panel">
@@ -1630,7 +1924,7 @@
       );
     }
 
-    function SidebarPanel() {
+    function SidebarPanel({ tab }) {
       const toast = useToast();
       const [threshold, setThreshold] = useState("50000");
       const [refresh, setRefresh] = useState("eod");
@@ -1643,6 +1937,7 @@
 
       return (
         <aside className="sidebar">
+          {tab === "performance" && <FactorExposures />}
           <div className="panel">
             <h2><Icon icon="ap-icon-alert" /> Risk alerts</h2>
             <div className="stack-sm">
@@ -1794,12 +2089,20 @@
           <div className="page-wrap">
             <header className="page-header">
               <div className="page-header__title">
-                <h1>End-of-day snapshot</h1>
-                <p className="sub">
-                  Thursday, May 14, 2026
+                <div className="title-row">
+                  <h1>Trading Day Summary</h1>
+                  <Tag type="basic" structure="border" color="gray" size="sm">
+                    <Icon icon="ap-icon-clock" size={12} />
+                    Closed 4:00 PM ET
+                  </Tag>
+                </div>
+                <div className="meta-row">
+                  <span className="date">Thursday, May 14, 2026</span>
                   <span className="sep">·</span>
-                  <span className="status-pill">Market closed at 4:00 PM ET</span>
-                </p>
+                  <span className="metric">142 trades</span>
+                  <span className="sep">·</span>
+                  <span className="metric">24 positions</span>
+                </div>
               </div>
               <div className="page-header__actions">
                 <Datepicker
@@ -1818,20 +2121,17 @@
               </div>
             </header>
 
-            <div className="kpi-grid">
-              {KPIS.map(k => <KPI key={k.id} k={k} />)}
-            </div>
-
             <TabNavigation align="left">
               <Tab label="Overview"    active={tab === "overview"}    onClick={() => setTab("overview")} />
               <Tab label="Positions"   numberCount={POSITIONS_FULL.length} active={tab === "positions"}   onClick={() => setTab("positions")} />
               <Tab label="Trades"      numberCount={TRADES.length}         active={tab === "trades"}      onClick={() => setTab("trades")} />
               <Tab label="Allocations" numberCount={SLEEVES.length} active={tab === "allocations"} onClick={() => setTab("allocations")} />
+              <Tab label="Performance" active={tab === "performance"} onClick={() => setTab("performance")} />
               <Tab label="Risk"        numberCount={STRESS_SCENARIOS.filter(s => s.severity === "error").length} active={tab === "risk"} onClick={() => setTab("risk")} />
               <Tab label="Compliance"  hasError numberCount={COMPLIANCE_RULES.filter(r => r.status === "fail").length} active={tab === "compliance"} onClick={() => setTab("compliance")} />
             </TabNavigation>
 
-            {(tab === "overview" || tab === "positions" || tab === "trades" || tab === "risk") && (
+            {(tab === "overview" || tab === "positions" || tab === "trades" || tab === "risk" || tab === "performance") && (
               <div className="filter-row">
                 <Search
                   value={search}
@@ -1872,10 +2172,11 @@
                 {tab === "positions"   && <PositionsView />}
                 {tab === "trades"      && <TradesBlotter />}
                 {tab === "allocations" && <AllocationsView />}
+                {tab === "performance" && <PerformanceView />}
                 {tab === "risk"        && <RiskView />}
                 {tab === "compliance"  && <ComplianceView />}
               </div>
-              <SidebarPanel />
+              <SidebarPanel tab={tab} />
             </div>
           </div>
 
