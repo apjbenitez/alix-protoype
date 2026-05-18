@@ -1,0 +1,1088 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FitLife Gym — Admin Dashboard prototype</title>
+  <link rel="stylesheet" href="../vendor/alix-ui.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-grid.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-theme-quartz.css" />
+  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31/dist/ag-grid-community.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+  <style>
+    /* =================================================================
+       AlixPartners Platforms Design System — resolved tokens
+       File: https://www.figma.com/design/uKDQ4UPs40MQXxn6CrcqTO/Platforms-Design-System
+       ================================================================= */
+    :root {
+      --ap-font:        Roboto, sans-serif;
+
+      --ap-bg-page:     #f1f1f1;
+      --ap-bg-surface:  #ffffff;
+      --ap-bg-subtle:   #fafafa;
+      --ap-bg-muted:    #f5f5f5;
+      --ap-bg-info:     #e6f4f9;
+
+      --ap-text:        #28292c;
+      --ap-text-2:      #4a4a4a;
+      --ap-text-muted:  #727272;
+      --ap-text-soft:   #878787;
+      --ap-text-on-primary: #ffffff;
+
+      --ap-border:      #cccccc;
+      --ap-border-soft: #e6e6e6;
+
+      --ap-primary:     #024870;
+      --ap-primary-2:   #0369a3;
+      --ap-primary-3:   #006176;
+      --ap-info:        #0369a3;
+
+      --ap-success:     #498e2b;
+      --ap-success-2:   #3f7b25;
+      --ap-success-bg:  #dff0db;
+
+      --ap-error:       #cb282e;
+      --ap-error-2:     #ac272c;
+      --ap-error-bg:    #fde2e4;
+
+      --ap-warning:     #ce7309;
+      --ap-warning-2:   #b86a0f;
+      --ap-warning-bg:  #fbe7c4;
+
+      --ap-radius-sm:   2px;
+      --ap-radius:      4px;
+      --ap-radius-md:   6px;
+      --ap-radius-lg:   8px;
+
+      --ap-space-1:     4px;
+      --ap-space-2:     8px;
+      --ap-space-3:     12px;
+      --ap-space-4:     16px;
+      --ap-space-5:     20px;
+      --ap-space-6:     24px;
+      --ap-space-8:     32px;
+
+      --ap-text-display-xs: 22px;
+      --ap-text-display-sm: 28px;
+
+      --ap-shadow-sm:   0 1px 2px rgba(0,0,0,0.05);
+      --ap-shadow:      0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--ap-font);
+      font-size: 14px;
+      line-height: 1.45;
+      background: var(--ap-bg-page);
+      color: var(--ap-text);
+    }
+
+    .design-badge {
+      position: fixed; bottom: 12px; right: 12px;
+      font: 600 11px/1 system-ui; padding: 6px 10px;
+      background: #111; color: #fff; border-radius: 999px;
+      z-index: 1000;
+    }
+
+    /* =====================================================
+       Shell layout — desktop default >=901px
+       ===================================================== */
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+      gap: var(--ap-space-5);
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 var(--ap-space-6) var(--ap-space-8);
+    }
+    .shell__main { min-width: 0; display: flex; flex-direction: column; gap: var(--ap-space-4); }
+    .shell__rail {
+      display: flex; flex-direction: column; gap: var(--ap-space-3);
+      position: sticky; top: var(--ap-space-4);
+      align-self: start; max-height: calc(100vh - var(--ap-space-6));
+      overflow: auto;
+    }
+
+    /* Header strip */
+    .topbar { background: var(--ap-bg-surface); border-bottom: 1px solid var(--ap-border-soft); }
+    .topbar__actions {
+      max-width: 1440px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: var(--ap-space-3);
+      padding: var(--ap-space-2) var(--ap-space-6);
+    }
+    .topbar__left {
+      display: flex; align-items: center; gap: var(--ap-space-3);
+    }
+    .topbar__right {
+      display: flex; align-items: center; gap: var(--ap-space-2);
+    }
+    .topbar__date {
+      font-size: 13px; color: var(--ap-text-muted);
+    }
+
+    /* =====================================================
+       Card primitive (composed — DS has no <Card>)
+       ===================================================== */
+    .card {
+      background: var(--ap-bg-surface);
+      border: 1px solid var(--ap-border-soft);
+      border-radius: var(--ap-radius-md);
+      padding: var(--ap-space-4);
+      box-shadow: var(--ap-shadow-sm);
+    }
+    .card--flush { padding: 0; }
+    .card__head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 0 0 var(--ap-space-3);
+      gap: var(--ap-space-2);
+    }
+    .card__title {
+      margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .04em;
+      text-transform: uppercase; color: var(--ap-text-2);
+    }
+    .card__sub {
+      margin: 0; font-size: 12px; color: var(--ap-text-muted);
+    }
+    .card__link {
+      font-size: 13px; font-weight: 500; color: var(--ap-info);
+      text-decoration: none; cursor: pointer;
+    }
+    .card__link:hover { text-decoration: underline; }
+
+    /* =====================================================
+       KPI strip
+       ===================================================== */
+    .kpi-strip {
+      display: flex; gap: var(--ap-space-3);
+      overflow-x: auto; scroll-snap-type: x mandatory;
+      padding: var(--ap-space-4) var(--ap-space-6);
+      list-style: none; margin: 0;
+      background: var(--ap-bg-surface);
+      border-bottom: 1px solid var(--ap-border-soft);
+    }
+    .kpi-card {
+      flex: 1 1 220px; scroll-snap-align: start;
+      background: var(--ap-bg-subtle);
+      border: 1px solid var(--ap-border-soft);
+      border-radius: var(--ap-radius-md);
+      padding: var(--ap-space-3) var(--ap-space-4);
+      display: flex; flex-direction: column; gap: var(--ap-space-1);
+      min-width: 200px;
+    }
+    .kpi-card__label {
+      font-size: 11px; font-weight: 600; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--ap-text-muted);
+    }
+    .kpi-card__value {
+      font-size: var(--ap-text-display-sm); font-weight: 700; line-height: 1.1;
+      font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+      color: var(--ap-text);
+    }
+    .kpi-card__row {
+      display: flex; align-items: center; gap: var(--ap-space-2);
+      margin-top: var(--ap-space-1);
+    }
+    .kpi-card__trend {
+      font-size: 12px; color: var(--ap-text-muted);
+    }
+
+    /* =====================================================
+       Filter bar
+       ===================================================== */
+    .filter-bar {
+      display: flex; flex-wrap: wrap; align-items: center;
+      gap: var(--ap-space-3);
+      padding: var(--ap-space-3) var(--ap-space-6);
+      background: var(--ap-bg-surface);
+      border-bottom: 1px solid var(--ap-border-soft);
+    }
+    .filter-bar__spacer { flex: 1; }
+    .seg {
+      display: inline-flex; border: 1px solid var(--ap-border);
+      border-radius: var(--ap-radius); overflow: hidden;
+      background: var(--ap-bg-surface);
+    }
+    .seg__btn {
+      appearance: none; border: 0; background: transparent;
+      padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 500;
+      color: var(--ap-text-2); cursor: pointer;
+      border-right: 1px solid var(--ap-border);
+    }
+    .seg__btn:last-child { border-right: 0; }
+    .seg__btn[aria-pressed="true"] {
+      background: var(--ap-primary); color: var(--ap-text-on-primary);
+    }
+    .seg__btn:focus-visible { outline: 2px solid var(--ap-primary-2); outline-offset: 2px; }
+
+    /* =====================================================
+       Grid card
+       ===================================================== */
+    .grid-card { padding: 0; overflow: hidden; }
+    .grid-card .ag-theme-quartz { --ag-border-color: var(--ap-border-soft); }
+
+    /* =====================================================
+       Avatar
+       ===================================================== */
+    .avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--ap-bg-muted);
+      color: var(--ap-text-muted);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600;
+      flex-shrink: 0;
+    }
+    .avatar--sm { width: 32px; height: 32px; font-size: 11px; }
+    .avatar--lg { width: 40px; height: 40px; font-size: 14px; }
+
+    /* =====================================================
+       Alert row
+       ===================================================== */
+    .alert-row {
+      display: grid; grid-template-columns: auto 1fr auto;
+      gap: var(--ap-space-2); align-items: start;
+      padding: var(--ap-space-2) 0;
+      border-bottom: 1px solid var(--ap-border-soft);
+    }
+    .alert-row:last-child { border-bottom: 0; }
+    .alert-row__content { min-width: 0; }
+    .alert-row__title { font-size: 13px; font-weight: 500; color: var(--ap-text); line-height: 1.3; }
+    .alert-row__meta { font-size: 11px; color: var(--ap-text-muted); margin-top: 2px; }
+
+    /* =====================================================
+       Peak hours bar chart (CSS-only)
+       ===================================================== */
+    .peak-chart {
+      display: flex; align-items: flex-end; gap: 4px;
+      height: 60px; padding: var(--ap-space-2) 0;
+    }
+    .peak-chart__bar {
+      flex: 1;
+      background: var(--ap-primary);
+      border-radius: var(--ap-radius-sm) var(--ap-radius-sm) 0 0;
+      min-width: 16px;
+      transition: opacity 0.15s;
+    }
+    .peak-chart__bar:hover { opacity: 0.8; }
+    .peak-chart__labels {
+      display: flex; gap: 4px; margin-top: var(--ap-space-1);
+    }
+    .peak-chart__label {
+      flex: 1; text-align: center;
+      font-size: 10px; color: var(--ap-text-muted);
+      min-width: 16px;
+    }
+
+    /* =====================================================
+       Stat row
+       ===================================================== */
+    .stat-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: var(--ap-space-2) 0;
+      border-bottom: 1px solid var(--ap-border-soft);
+    }
+    .stat-row:last-child { border-bottom: 0; }
+    .stat-row__label { font-size: 13px; color: var(--ap-text-muted); }
+    .stat-row__value { font-size: 14px; font-weight: 600; color: var(--ap-text); font-variant-numeric: tabular-nums; }
+
+    /* =====================================================
+       Renewal row
+       ===================================================== */
+    .renewal-row {
+      display: grid; grid-template-columns: auto 1fr auto;
+      gap: var(--ap-space-2); align-items: center;
+      padding: var(--ap-space-2) 0;
+      border-bottom: 1px solid var(--ap-border-soft);
+    }
+    .renewal-row:last-child { border-bottom: 0; }
+    .renewal-row__info { min-width: 0; }
+    .renewal-row__name { font-size: 13px; font-weight: 500; color: var(--ap-text); }
+    .renewal-row__meta { font-size: 11px; color: var(--ap-text-muted); margin-top: 2px; }
+
+    /* =====================================================
+       Check-in dialog
+       ===================================================== */
+    .checkin-search {
+      display: flex; flex-direction: column; gap: var(--ap-space-3);
+    }
+    .checkin-search__input {
+      width: 100%; padding: var(--ap-space-2) var(--ap-space-3);
+      border: 1px solid var(--ap-border);
+      border-radius: var(--ap-radius);
+      font: inherit; font-size: 14px;
+      box-sizing: border-box;
+    }
+    .checkin-search__input:focus {
+      outline: none; border-color: var(--ap-primary);
+      box-shadow: 0 0 0 2px rgba(2, 72, 112, 0.15);
+    }
+    .checkin-results {
+      display: flex; flex-direction: column; gap: 0;
+      max-height: 300px; overflow-y: auto;
+    }
+    .checkin-result {
+      display: flex; align-items: center; gap: var(--ap-space-3);
+      padding: var(--ap-space-3);
+      border: 1px solid transparent;
+      border-radius: var(--ap-radius);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .checkin-result:hover { background: var(--ap-bg-muted); }
+    .checkin-result--selected {
+      background: var(--ap-bg-info);
+      border-color: var(--ap-primary-2);
+    }
+    .checkin-result__info { flex: 1; min-width: 0; }
+    .checkin-result__name { font-size: 14px; font-weight: 500; color: var(--ap-text); }
+    .checkin-result__meta { font-size: 12px; color: var(--ap-text-muted); }
+
+    .checkin-confirm {
+      display: flex; flex-direction: column; align-items: center;
+      text-align: center; gap: var(--ap-space-3);
+      padding: var(--ap-space-4) 0;
+    }
+    .checkin-confirm__name { font-size: 18px; font-weight: 700; color: var(--ap-text); margin: 0; }
+    .checkin-confirm__type { font-size: 14px; color: var(--ap-text-muted); margin: 0; }
+
+    /* =====================================================
+       AG Grid theming
+       ===================================================== */
+    .ag-theme-quartz {
+      --ag-font-family: var(--ap-font);
+      --ag-foreground-color: var(--ap-text);
+      --ag-background-color: var(--ap-bg-surface);
+      --ag-header-foreground-color: var(--ap-text-2);
+      --ag-header-background-color: var(--ap-bg-subtle);
+      --ag-odd-row-background-color: var(--ap-bg-surface);
+      --ag-row-hover-color: var(--ap-bg-muted);
+      --ag-border-color: var(--ap-border-soft);
+      --ag-border-radius: var(--ap-radius);
+      --ag-cell-horizontal-padding: var(--ap-space-3);
+      width: 100%; min-width: 0;
+    }
+    .ag-theme-quartz .ag-header-cell-text {
+      font-weight: 600; text-transform: uppercase; letter-spacing: .04em; font-size: 11px;
+    }
+
+    /* Cell renderer chrome */
+    .status-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+    }
+    .status-tag--success { background: var(--ap-success-bg); color: var(--ap-success-2); }
+    .status-tag--warning { background: var(--ap-warning-bg); color: var(--ap-warning-2); }
+    .status-tag--error   { background: var(--ap-error-bg);   color: var(--ap-error-2); }
+    .status-tag--basic   { background: var(--ap-bg-muted);   color: var(--ap-text-muted); }
+
+    .capacity-cell { font-variant-numeric: tabular-nums; }
+    .capacity-cell--full { color: var(--ap-error-2); font-weight: 600; }
+
+    .avatar-cell {
+      display: flex; align-items: center; gap: var(--ap-space-2);
+    }
+    .avatar-cell__img {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--ap-bg-muted); color: var(--ap-text-muted);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 600;
+    }
+
+    .scroll-hint {
+      font-size: 11px; color: var(--ap-text-muted);
+      padding: var(--ap-space-2) var(--ap-space-3); display: none;
+    }
+
+    /* =====================================================
+       Responsive — three skill-mandated breakpoints
+       ===================================================== */
+    @media (max-width: 900px) {
+      .shell { grid-template-columns: minmax(0, 1fr); }
+      .shell__rail {
+        position: static; max-height: none; overflow: visible;
+        flex-direction: row; overflow-x: auto;
+        scroll-snap-type: x mandatory;
+      }
+      .shell__rail > * { flex: 0 0 280px; scroll-snap-align: start; }
+      .kpi-strip { padding: var(--ap-space-3); }
+      .filter-bar { padding: var(--ap-space-3); }
+    }
+
+    @media (max-width: 640px) {
+      .shell { padding: 0 var(--ap-space-3) var(--ap-space-5); }
+      .kpi-strip {
+        flex-wrap: wrap;
+        overflow: visible;
+        scroll-snap-type: none;
+      }
+      .kpi-card { flex: 1 1 calc(50% - var(--ap-space-2)); min-width: 140px; }
+      .topbar__actions { flex-wrap: wrap; padding: var(--ap-space-2) var(--ap-space-3); }
+      .topbar__date { display: none; }
+      .scroll-hint { display: block; }
+      .filter-bar__inline { display: none; }
+      .filter-bar__mobile { display: inline-flex; }
+    }
+
+    @media (max-width: 400px) {
+      .kpi-card__value { font-size: var(--ap-text-display-xs); }
+      .kpi-card { padding: var(--ap-space-2) var(--ap-space-3); }
+      .topbar__right .btn-checkin-text { display: none; }
+    }
+
+    /* hidden by default; shown only <=640px */
+    .filter-bar__mobile { display: none; }
+    .filter-bar__inline { display: inline-flex; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div class="design-badge">FitLife Gym — prototype</div>
+
+  <script type="text/babel" data-type="module" data-presets="react">
+    import {
+      React,
+      createRoot,
+      NavBar,
+      Button,
+      Dropdown,
+      Tag,
+      Dialog,
+      Icon,
+      Spinner,
+      ToastProvider,
+      useToast,
+      AgGrid,
+    } from "../vendor/alix-ui.js";
+
+    const { useState, useMemo, useEffect, useRef } = React;
+
+    /* =====================================================
+       Mock data
+       ===================================================== */
+    const MEMBERS = [
+      { id: 1,  name: "Ana Garcia",                   initials: "AG", type: "Annual",    status: "Active",   joinDate: "2024-03-15", lastCheckIn: "2026-05-18T08:12:00" },
+      { id: 2,  name: "Christopher Rodriguez-Martinez", initials: "CR", type: "Annual",    status: "Active",   joinDate: "2023-11-02", lastCheckIn: "2026-05-18T07:45:00" },
+      { id: 3,  name: "Mike Chen",                    initials: "MC", type: "Monthly",   status: "Active",   joinDate: "2026-01-10", lastCheckIn: "2026-05-18T06:30:00" },
+      { id: 4,  name: "Sarah Kim",                    initials: "SK", type: "Monthly",   status: "Expiring", joinDate: "2025-05-20", lastCheckIn: "2026-05-17T18:00:00", expiryDate: "May 22" },
+      { id: 5,  name: "David Thompson",               initials: "DT", type: "Day pass",  status: "Active",   joinDate: "2026-05-18", lastCheckIn: "2026-05-18T09:00:00" },
+      { id: 6,  name: "Emily Watson",                 initials: "EW", type: "Annual",    status: "Active",   joinDate: "2024-08-01", lastCheckIn: "2026-05-18T07:15:00" },
+      { id: 7,  name: "James Wilson",                 initials: "JW", type: "Monthly",   status: "Expired",  joinDate: "2025-04-10", lastCheckIn: "2026-05-15T17:30:00", expiryDate: "May 10" },
+      { id: 8,  name: "Lisa Park",                    initials: "LP", type: "Trial",     status: "Active",   joinDate: "2026-05-15", lastCheckIn: "2026-05-18T08:45:00" },
+      { id: 9,  name: "Robert Martinez",              initials: "RM", type: "Annual",    status: "Active",   joinDate: "2024-01-05", lastCheckIn: "2026-05-18T06:00:00" },
+      { id: 10, name: "Jennifer Lee",                 initials: "JL", type: "Monthly",   status: "Expiring", joinDate: "2025-06-01", lastCheckIn: "2026-05-18T07:00:00", expiryDate: "May 21" },
+      { id: 11, name: "Marcus Johnson",               initials: "MJ", type: "Annual",    status: "Active",   joinDate: "2023-09-15", lastCheckIn: "2026-05-18T08:30:00" },
+      { id: 12, name: "Amanda Foster",                initials: "AF", type: "Monthly",   status: "Expired",  joinDate: "2025-02-20", lastCheckIn: "2026-05-12T16:00:00", expiryDate: "May 5" },
+      { id: 13, name: "Kevin O'Brien",                initials: "KO", type: "Annual",    status: "Active",   joinDate: "2024-06-10", lastCheckIn: "2026-05-18T09:15:00" },
+      { id: 14, name: "Nicole Adams",                 initials: "NA", type: "Monthly",   status: "Expiring", joinDate: "2025-05-25", lastCheckIn: "2026-05-17T19:00:00", expiryDate: "May 25" },
+      { id: 15, name: "Brandon Taylor",               initials: "BT", type: "Day pass",  status: "Active",   joinDate: "2026-05-18", lastCheckIn: "2026-05-18T10:00:00" },
+    ];
+
+    const CHECK_INS = [
+      { memberId: 1,  name: "Ana Garcia",       initials: "AG", type: "Annual",   time: "2026-05-18T09:43:00", status: "Active" },
+      { memberId: 13, name: "Kevin O'Brien",    initials: "KO", type: "Annual",   time: "2026-05-18T09:38:00", status: "Active" },
+      { memberId: 15, name: "Brandon Taylor",   initials: "BT", type: "Day pass", time: "2026-05-18T09:30:00", status: "Active" },
+      { memberId: 5,  name: "David Thompson",   initials: "DT", type: "Day pass", time: "2026-05-18T09:15:00", status: "Active" },
+      { memberId: 8,  name: "Lisa Park",        initials: "LP", type: "Trial",    time: "2026-05-18T08:58:00", status: "Active" },
+      { memberId: 11, name: "Marcus Johnson",   initials: "MJ", type: "Annual",   time: "2026-05-18T08:45:00", status: "Active" },
+      { memberId: 2,  name: "Christopher R-M",  initials: "CR", type: "Annual",   time: "2026-05-18T08:30:00", status: "Active" },
+      { memberId: 6,  name: "Emily Watson",     initials: "EW", type: "Annual",   time: "2026-05-18T08:12:00", status: "Active" },
+      { memberId: 7,  name: "James Wilson",     initials: "JW", type: "Monthly",  time: "2026-05-18T07:55:00", status: "Expired" },
+      { memberId: 3,  name: "Mike Chen",        initials: "MC", type: "Monthly",  time: "2026-05-18T07:30:00", status: "Active" },
+      { memberId: 10, name: "Jennifer Lee",     initials: "JL", type: "Monthly",  time: "2026-05-18T07:15:00", status: "Expiring" },
+      { memberId: 9,  name: "Robert Martinez",  initials: "RM", type: "Annual",   time: "2026-05-18T06:45:00", status: "Active" },
+      { memberId: 4,  name: "Sarah Kim",        initials: "SK", type: "Monthly",  time: "2026-05-18T06:20:00", status: "Expiring" },
+    ];
+
+    const CLASSES = [
+      { id: 1, name: "Spin",     time: "6:00 AM",  instructor: "Maria Santos",   filled: 28, capacity: 30, status: "Completed" },
+      { id: 2, name: "Yoga",     time: "7:30 AM",  instructor: "David Chen",     filled: 15, capacity: 20, status: "Completed" },
+      { id: 3, name: "HIIT",     time: "9:00 AM",  instructor: "Alex Turner",    filled: 22, capacity: 25, status: "In progress" },
+      { id: 4, name: "Pilates",  time: "12:00 PM", instructor: "Sarah Johnson",  filled: 8,  capacity: 15, status: "Upcoming" },
+      { id: 5, name: "CrossFit", time: "5:30 PM",  instructor: "Mike Rodriguez", filled: 30, capacity: 30, status: "Upcoming" },
+      { id: 6, name: "Zumba",    time: "7:00 PM",  instructor: "Lisa Patel",     filled: 12, capacity: 25, status: "Upcoming" },
+    ];
+
+    const ALERTS = [
+      { severity: "warning", title: "4 memberships expiring this week",     action: "View" },
+      { severity: "error",   title: "2 outstanding payments ($89)",         action: "View" },
+      { severity: "basic",   title: "Treadmill #3 maintenance due",         action: "View" },
+    ];
+
+    const PEAK_HOURS = [
+      { hour: "6a", value: 85 },
+      { hour: "8a", value: 65 },
+      { hour: "10a", value: 35 },
+      { hour: "12p", value: 45 },
+      { hour: "2p", value: 30 },
+      { hour: "4p", value: 55 },
+      { hour: "6p", value: 90 },
+      { hour: "8p", value: 60 },
+    ];
+
+    const RENEWALS = [
+      { id: 4,  name: "Sarah Kim",     initials: "SK", type: "Monthly", expiryDate: "May 22" },
+      { id: 10, name: "Jennifer Lee",  initials: "JL", type: "Monthly", expiryDate: "May 21" },
+      { id: 14, name: "Nicole Adams",  initials: "NA", type: "Monthly", expiryDate: "May 25" },
+      { id: 16, name: "Tom Harris",    initials: "TH", type: "Annual",  expiryDate: "May 23" },
+      { id: 17, name: "Rachel Green",  initials: "RG", type: "Monthly", expiryDate: "May 24" },
+    ];
+
+    const KPIS = [
+      { id: "members",  label: "Active members",   value: "312",      trend: "+8 this month" },
+      { id: "checkins", label: "Today's check-ins", value: "47",       trend: "vs 52 last week" },
+      { id: "revenue",  label: "Monthly revenue",   value: "$18,450", trend: "73% of goal" },
+      { id: "classes",  label: "Classes today",     value: "6",       trend: "78/96 spots" },
+    ];
+
+    const MEMBERSHIP_OPTIONS = [
+      { value: "all",     label: "All memberships" },
+      { value: "monthly", label: "Monthly" },
+      { value: "annual",  label: "Annual" },
+      { value: "daypass", label: "Day pass" },
+    ];
+
+    /* =====================================================
+       Helpers
+       ===================================================== */
+    function getRelativeTime(isoString) {
+      const now = new Date("2026-05-18T09:48:00");
+      const date = new Date(isoString);
+      const diffMs = now - date;
+      const diffMin = Math.floor(diffMs / 60000);
+
+      if (diffMin < 1) return "Just now";
+      if (diffMin < 60) return `${diffMin} min ago`;
+      const diffHr = Math.floor(diffMin / 60);
+      if (diffHr < 24) return `${diffHr}h ago`;
+      return `${Math.floor(diffHr / 24)}d ago`;
+    }
+
+    function getInitials(name) {
+      return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+    }
+
+    /* =====================================================
+       Cell renderers (HTML strings — AG Grid style)
+       ===================================================== */
+    const avatarRenderer = (params) => {
+      const initials = params.data?.initials || getInitials(params.data?.name || "??");
+      return `<div class="avatar-cell">
+        <span class="avatar-cell__img">${initials}</span>
+      </div>`;
+    };
+
+    const memberNameRenderer = (params) => {
+      return `<span style="font-weight: 500">${params.value || ""}</span>`;
+    };
+
+    const membershipTypeRenderer = (params) => {
+      const v = params.value;
+      if (!v) return "";
+      const tone = v === "Annual" ? "success" : v === "Monthly" ? "basic" : v === "Trial" ? "warning" : "basic";
+      return `<span class="status-tag status-tag--${tone}">${v}</span>`;
+    };
+
+    const statusRenderer = (params) => {
+      const v = params.value;
+      if (!v) return "";
+      const tone = v === "Active" ? "success" : v === "Expiring" ? "warning" : "error";
+      return `<span class="status-tag status-tag--${tone}">${v}</span>`;
+    };
+
+    const timeRenderer = (params) => {
+      if (!params.value) return "";
+      return getRelativeTime(params.value);
+    };
+
+    const classStatusRenderer = (params) => {
+      const v = params.value;
+      if (!v) return "";
+      const tone = v === "Completed" ? "basic" : v === "In progress" ? "warning" : "success";
+      return `<span class="status-tag status-tag--${tone}">${v}</span>`;
+    };
+
+    const capacityRenderer = (params) => {
+      const filled = params.data?.filled ?? 0;
+      const capacity = params.data?.capacity ?? 0;
+      const isFull = filled >= capacity;
+      if (isFull) {
+        return `<span class="capacity-cell capacity-cell--full">${filled}/${capacity} <span class="status-tag status-tag--error">FULL</span></span>`;
+      }
+      return `<span class="capacity-cell">${filled}/${capacity}</span>`;
+    };
+
+    /* =====================================================
+       Components
+       ===================================================== */
+    function KpiCard({ kpi }) {
+      return (
+        <li className="kpi-card" role="listitem">
+          <span className="kpi-card__label">{kpi.label}</span>
+          <span className="kpi-card__value" aria-label={`${kpi.label}: ${kpi.value}`}>{kpi.value}</span>
+          <div className="kpi-card__row">
+            <span className="kpi-card__trend">{kpi.trend}</span>
+          </div>
+        </li>
+      );
+    }
+
+    function KpiStrip() {
+      return (
+        <ul className="kpi-strip" role="list" aria-label="Key metrics">
+          {KPIS.map((kpi) => <KpiCard key={kpi.id} kpi={kpi} />)}
+        </ul>
+      );
+    }
+
+    function SegmentedDateRange({ value, onChange }) {
+      const items = [
+        { value: "today",     label: "Today" },
+        { value: "week",      label: "This week" },
+        { value: "month",     label: "This month" },
+      ];
+      return (
+        <div role="group" aria-label="Date range" className="seg">
+          {items.map((it) => (
+            <button key={it.value} type="button" className="seg__btn"
+                    aria-pressed={value === it.value} onClick={() => onChange(it.value)}>
+              {it.label}
+            </button>
+          ))}
+        </div>
+      );
+    }
+
+    function FilterBar({ datePreset, setDatePreset, membership, setMembership }) {
+      return (
+        <div className="filter-bar" role="region" aria-label="Filters">
+          <div className="filter-bar__inline">
+            <SegmentedDateRange value={datePreset} onChange={setDatePreset} />
+          </div>
+          <div className="filter-bar__inline" style={{ minWidth: 180 }}>
+            <Dropdown
+              options={MEMBERSHIP_OPTIONS}
+              value={[membership]}
+              onChange={(v) => setMembership(v[0] || "all")}
+              placeholder="All memberships"
+            />
+          </div>
+          <div className="filter-bar__spacer" />
+          <Button type="secondary" size="sm" className="filter-bar__mobile">
+            Filters
+          </Button>
+        </div>
+      );
+    }
+
+    function RecentCheckInsCard({ checkIns }) {
+      const columnDefs = useMemo(() => [
+        { field: "avatar",  headerName: "",       width: 56,  cellRenderer: avatarRenderer, sortable: false, filter: false },
+        { field: "name",    headerName: "Member", flex: 2,    cellRenderer: memberNameRenderer },
+        { field: "type",    headerName: "Type",   flex: 1,    cellRenderer: membershipTypeRenderer },
+        { field: "time",    headerName: "Time",   flex: 1,    cellRenderer: timeRenderer },
+        { field: "status",  headerName: "Status", flex: 1,    cellRenderer: statusRenderer },
+      ], []);
+
+      const defaultColDef = useMemo(() => ({
+        resizable: true, sortable: true, filter: true, flex: 1, minWidth: 80
+      }), []);
+
+      return (
+        <div className="card grid-card">
+          <header className="card__head" style={{ padding: "var(--ap-space-3) var(--ap-space-4)" }}>
+            <h3 className="card__title">Recent check-ins</h3>
+            <a className="card__link" href="#" onClick={(e) => e.preventDefault()}>See all</a>
+          </header>
+          <div className="scroll-hint">Scroll table horizontally</div>
+          <AgGrid
+            rowData={checkIns}
+            columnDefs={columnDefs}
+            defaultColDef={defaultColDef}
+            rowHeight={48}
+            headerHeight={36}
+            height={320}
+          />
+        </div>
+      );
+    }
+
+    function TodayClassesCard({ classes }) {
+      const columnDefs = useMemo(() => [
+        { field: "name",       headerName: "Class",      flex: 1.5 },
+        { field: "time",       headerName: "Time",       flex: 1 },
+        { field: "instructor", headerName: "Instructor", flex: 1.5 },
+        { field: "capacity",   headerName: "Capacity",   flex: 1.2, cellRenderer: capacityRenderer },
+        { field: "status",     headerName: "Status",     flex: 1,   cellRenderer: classStatusRenderer },
+      ], []);
+
+      const defaultColDef = useMemo(() => ({
+        resizable: true, sortable: true, filter: true, flex: 1, minWidth: 80
+      }), []);
+
+      return (
+        <div className="card grid-card">
+          <header className="card__head" style={{ padding: "var(--ap-space-3) var(--ap-space-4)" }}>
+            <h3 className="card__title">Today's classes</h3>
+          </header>
+          <div className="scroll-hint">Scroll table horizontally</div>
+          <AgGrid
+            rowData={classes}
+            columnDefs={columnDefs}
+            defaultColDef={defaultColDef}
+            rowHeight={48}
+            headerHeight={36}
+            height={280}
+          />
+        </div>
+      );
+    }
+
+    function AlertsCard() {
+      const severityIcon = (sev) => {
+        if (sev === "error") return <Icon name="ap-icon-alert-filled" size={16} style={{ color: "var(--ap-error)" }} />;
+        if (sev === "warning") return <Icon name="ap-icon-alert-filled" size={16} style={{ color: "var(--ap-warning)" }} />;
+        return <Icon name="ap-icon-information-filled" size={16} style={{ color: "var(--ap-text-muted)" }} />;
+      };
+
+      return (
+        <div className="card">
+          <header className="card__head">
+            <h3 className="card__title">Alerts</h3>
+            <Tag type="basic" color="red" size="sm" structure="solid" label={String(ALERTS.length)} noIcon />
+          </header>
+          {ALERTS.map((alert, i) => (
+            <div key={i} className="alert-row">
+              {severityIcon(alert.severity)}
+              <div className="alert-row__content">
+                <div className="alert-row__title">{alert.title}</div>
+              </div>
+              <Button type="tertiary" size="sm">{alert.action}</Button>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    function QuickStatsCard() {
+      const maxVal = Math.max(...PEAK_HOURS.map(h => h.value));
+
+      return (
+        <div className="card">
+          <header className="card__head">
+            <h3 className="card__title">Quick stats</h3>
+          </header>
+          <div style={{ marginBottom: "var(--ap-space-3)" }}>
+            <div style={{ fontSize: "12px", color: "var(--ap-text-muted)", marginBottom: "var(--ap-space-1)" }}>
+              Peak hours today
+            </div>
+            <div className="peak-chart" role="img" aria-label="Peak hours: 6 AM and 6 PM are busiest">
+              {PEAK_HOURS.map((h) => (
+                <div
+                  key={h.hour}
+                  className="peak-chart__bar"
+                  style={{ height: `${(h.value / maxVal) * 100}%` }}
+                  title={`${h.hour}: ${h.value}%`}
+                />
+              ))}
+            </div>
+            <div className="peak-chart__labels">
+              {PEAK_HOURS.map((h) => (
+                <span key={h.hour} className="peak-chart__label">{h.hour}</span>
+              ))}
+            </div>
+          </div>
+          <div className="stat-row">
+            <span className="stat-row__label">Avg daily check-ins</span>
+            <span className="stat-row__value">52</span>
+          </div>
+          <div className="stat-row">
+            <span className="stat-row__label">New signups this week</span>
+            <span className="stat-row__value">8</span>
+          </div>
+        </div>
+      );
+    }
+
+    function UpcomingRenewalsCard() {
+      const toast = useToast();
+      const [sentIds, setSentIds] = useState(new Set());
+      const [loadingId, setLoadingId] = useState(null);
+
+      const handleSendReminder = (member) => {
+        setLoadingId(member.id);
+        setTimeout(() => {
+          setLoadingId(null);
+          setSentIds(prev => new Set([...prev, member.id]));
+          toast.success(`Reminder sent to ${member.name}`);
+        }, 300);
+      };
+
+      return (
+        <div className="card">
+          <header className="card__head">
+            <h3 className="card__title">Upcoming renewals</h3>
+          </header>
+          {RENEWALS.map((member) => (
+            <div key={member.id} className="renewal-row">
+              <div className="avatar avatar--sm">{member.initials}</div>
+              <div className="renewal-row__info">
+                <div className="renewal-row__name">{member.name}</div>
+                <div className="renewal-row__meta">{member.type} - Expires {member.expiryDate}</div>
+              </div>
+              {sentIds.has(member.id) ? (
+                <Button type="tertiary" size="sm" disabled>Sent</Button>
+              ) : loadingId === member.id ? (
+                <Button type="secondary" size="sm" disabled>
+                  <Spinner size="sm" />
+                </Button>
+              ) : (
+                <Button type="secondary" size="sm" onClick={() => handleSendReminder(member)}>
+                  Send reminder
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    /* =====================================================
+       Check-in Dialog
+       ===================================================== */
+    function CheckInDialog({ isOpen, onClose }) {
+      const toast = useToast();
+      const [phase, setPhase] = useState("search");
+      const [searchQuery, setSearchQuery] = useState("");
+      const [selectedMember, setSelectedMember] = useState(null);
+      const [isConfirming, setIsConfirming] = useState(false);
+      const inputRef = useRef(null);
+
+      useEffect(() => {
+        if (isOpen) {
+          setPhase("search");
+          setSearchQuery("");
+          setSelectedMember(null);
+          setIsConfirming(false);
+          setTimeout(() => inputRef.current?.focus(), 100);
+        }
+      }, [isOpen]);
+
+      const filteredMembers = useMemo(() => {
+        if (!searchQuery.trim()) return MEMBERS.slice(0, 8);
+        const q = searchQuery.toLowerCase();
+        return MEMBERS.filter(m =>
+          m.name.toLowerCase().includes(q) || m.type.toLowerCase().includes(q)
+        ).slice(0, 8);
+      }, [searchQuery]);
+
+      const handleSelectMember = (member) => {
+        setSelectedMember(member);
+        setPhase("confirm");
+      };
+
+      const handleConfirmCheckIn = () => {
+        setIsConfirming(true);
+        setTimeout(() => {
+          toast.success(`${selectedMember.name} checked in`);
+          onClose();
+        }, 300);
+      };
+
+      const handleBack = () => {
+        setPhase("search");
+        setSelectedMember(null);
+      };
+
+      if (!isOpen) return null;
+
+      if (phase === "search") {
+        return (
+          <Dialog
+            isOpen
+            onClose={onClose}
+            title="Check in member"
+            description={
+              <div className="checkin-search">
+                <input
+                  ref={inputRef}
+                  type="search"
+                  className="checkin-search__input"
+                  placeholder="Search by name..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <div className="checkin-results">
+                  {filteredMembers.length === 0 ? (
+                    <div style={{ padding: "var(--ap-space-4)", textAlign: "center", color: "var(--ap-text-muted)" }}>
+                      No members found
+                    </div>
+                  ) : (
+                    filteredMembers.map((member) => (
+                      <div
+                        key={member.id}
+                        className="checkin-result"
+                        onClick={() => handleSelectMember(member)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === "Enter" && handleSelectMember(member)}
+                      >
+                        <div className="avatar">{member.initials}</div>
+                        <div className="checkin-result__info">
+                          <div className="checkin-result__name">{member.name}</div>
+                          <div className="checkin-result__meta">{member.type} - {member.status}</div>
+                        </div>
+                        {member.status === "Expired" && (
+                          <Tag type="error" size="sm" structure="solid" label="Expired" />
+                        )}
+                        {member.status === "Expiring" && (
+                          <Tag type="warning" size="sm" structure="solid" label="Expiring" />
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            }
+            cancelButtonText="Cancel"
+            onCancel={onClose}
+          />
+        );
+      }
+
+      const isExpired = selectedMember?.status === "Expired";
+
+      return (
+        <Dialog
+          isOpen
+          onClose={onClose}
+          title="Confirm check-in"
+          description={
+            <div className="checkin-confirm">
+              <div className="avatar avatar--lg">{selectedMember?.initials}</div>
+              <div className="checkin-confirm__name">{selectedMember?.name}</div>
+              <div className="checkin-confirm__type">{selectedMember?.type} membership</div>
+              {isExpired && (
+                <div style={{
+                  background: "var(--ap-error-bg)",
+                  color: "var(--ap-error-2)",
+                  padding: "var(--ap-space-3)",
+                  borderRadius: "var(--ap-radius)",
+                  fontSize: "13px",
+                  width: "100%",
+                  textAlign: "left"
+                }}>
+                  <strong>Membership expired</strong> on {selectedMember?.expiryDate}. Proceed anyway?
+                </div>
+              )}
+              {selectedMember?.status === "Expiring" && (
+                <div style={{
+                  background: "var(--ap-warning-bg)",
+                  color: "var(--ap-warning-2)",
+                  padding: "var(--ap-space-3)",
+                  borderRadius: "var(--ap-radius)",
+                  fontSize: "13px",
+                  width: "100%",
+                  textAlign: "left"
+                }}>
+                  <strong>Expiring soon</strong> on {selectedMember?.expiryDate}
+                </div>
+              )}
+            </div>
+          }
+          confirmButtonText={isConfirming ? "Checking in..." : "Confirm check-in"}
+          cancelButtonText="Back"
+          onConfirm={handleConfirmCheckIn}
+          onCancel={handleBack}
+          confirmButtonDisabled={isConfirming}
+        />
+      );
+    }
+
+    /* =====================================================
+       Shell
+       ===================================================== */
+    function Shell() {
+      const [checkInOpen, setCheckInOpen] = useState(false);
+      const [datePreset, setDatePreset] = useState("today");
+      const [membership, setMembership] = useState("all");
+
+      const currentDate = new Date("2026-05-18T09:48:00");
+      const formattedDate = currentDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      });
+
+      return (
+        <>
+          <div className="topbar">
+            <NavBar
+              projectName="FitLife Gym"
+              projectLogoIcon="ap-icon-logo-alixpartners"
+              activeMenuItemHref="#dashboard"
+              menuItems={[
+                { label: "Dashboard", href: "#dashboard" },
+                { label: "Members",   href: "#members" },
+                { label: "Classes",   href: "#classes" },
+                { label: "Payments",  href: "#payments" },
+                { label: "Settings",  href: "#settings" },
+              ]}
+            />
+            <div className="topbar__actions">
+              <div className="topbar__left">
+                <span className="topbar__date">{formattedDate}</span>
+              </div>
+              <div className="topbar__right">
+                <Button type="primary" size="sm" onClick={() => setCheckInOpen(true)}>
+                  <span className="btn-checkin-text">Check in</span>
+                </Button>
+                <Button type="tertiary" size="sm" icon="ap-icon-notifications" aria-label="Notifications" />
+                <div className="avatar avatar--sm" style={{ cursor: "pointer" }} title="User menu">JD</div>
+              </div>
+            </div>
+          </div>
+
+          <KpiStrip />
+
+          <FilterBar
+            datePreset={datePreset}
+            setDatePreset={setDatePreset}
+            membership={membership}
+            setMembership={setMembership}
+          />
+
+          <div className="shell">
+            <div className="shell__main">
+              <RecentCheckInsCard checkIns={CHECK_INS} />
+              <TodayClassesCard classes={CLASSES} />
+            </div>
+            <div className="shell__rail">
+              <AlertsCard />
+              <QuickStatsCard />
+              <UpcomingRenewalsCard />
+            </div>
+          </div>
+
+          <CheckInDialog isOpen={checkInOpen} onClose={() => setCheckInOpen(false)} />
+        </>
+      );
+    }
+
+    /* =====================================================
+       App
+       ===================================================== */
+    function App() {
+      return (
+        <ToastProvider>
+          <Shell />
+        </ToastProvider>
+      );
+    }
+
+    createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
