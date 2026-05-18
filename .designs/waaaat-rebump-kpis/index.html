@@ -1,0 +1,1415 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>waaaat — Finance Admin (CFO / Controller) prototype</title>
+  <link rel="stylesheet" href="../vendor/proto-defaults.css" />
+  <link rel="stylesheet" href="../vendor/alix-ui.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-grid.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31/styles/ag-theme-quartz.css" />
+  <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31/dist/ag-grid-community.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+  <style>
+    /* =================================================================
+       AlixPartners Platforms Design System — resolved tokens
+       File: https://www.figma.com/design/uKDQ4UPs40MQXxn6CrcqTO/Platforms-Design-System
+       Mirrored from values used in @alixpartners/ui-components.
+       Token CSS-custom-property names are declared in proto-defaults.css
+       (canonical --ap-* names) — values resolved from the DS Figma vars.
+       ================================================================= */
+    :root {
+      --ap-font:        Roboto, sans-serif;
+
+      --ap-bg-page:     #f1f1f1;
+      --ap-bg-surface:  #ffffff;
+      --ap-bg-subtle:   #fafafa;
+      --ap-bg-muted:    #f5f5f5;
+      --ap-bg-info:     #e6f4f9;
+
+      --ap-text:        #28292c;
+      --ap-text-2:      #4a4a4a;
+      --ap-text-muted:  #727272;
+      --ap-text-soft:   #878787;
+      --ap-text-on-primary: #ffffff;
+
+      --ap-border:      #cccccc;
+      --ap-border-soft: #e6e6e6;
+
+      --ap-primary:     #024870;
+      --ap-primary-2:   #0369a3;
+      --ap-primary-3:   #006176;
+      --ap-info:        #0369a3;
+
+      --ap-success:     #498e2b;
+      --ap-success-2:   #3f7b25;
+      --ap-success-bg:  #dff0db;
+
+      --ap-error:       #cb282e;
+      --ap-error-2:     #ac272c;
+      --ap-error-bg:    #fde2e4;
+
+      --ap-warning:     #ce7309;
+      --ap-warning-2:   #b86a0f;
+      --ap-warning-bg:  #fbe7c4;
+
+      --ap-radius-sm:   2px;
+      --ap-radius:      4px;
+      --ap-radius-md:   6px;
+      --ap-radius-lg:   8px;
+
+      --ap-space-1:     4px;
+      --ap-space-2:     8px;
+      --ap-space-3:     12px;
+      --ap-space-4:     16px;
+      --ap-space-5:     20px;
+      --ap-space-6:     24px;
+      --ap-space-8:     32px;
+
+      --ap-text-display-xs: 22px;
+      --ap-text-display-sm: 28px;
+
+      --ap-shadow-sm:   0 1px 2px rgba(0,0,0,0.05);
+      --ap-shadow:      0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    body {
+      font-family: var(--ap-font);
+      font-size: 14px;
+      line-height: 1.45;
+      background: var(--ap-bg-page);
+      color: var(--ap-text);
+    }
+
+    .design-badge {
+      position: fixed; bottom: 12px; right: 12px;
+      font: 600 11px/1 system-ui; padding: 6px 10px;
+      background: #111; color: #fff; border-radius: 999px;
+      z-index: 1000;
+    }
+
+    /* =====================================================
+       Shell layout — desktop default ≥901px
+       ===================================================== */
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: var(--ap-space-5);
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 var(--ap-space-6) var(--ap-space-8);
+    }
+    .shell__main { min-width: 0; display: flex; flex-direction: column; gap: var(--ap-space-4); }
+    .shell__rail {
+      display: flex; flex-direction: column; gap: var(--ap-space-3);
+      position: sticky; top: var(--ap-space-4);
+      align-self: start; max-height: calc(100vh - var(--ap-space-6));
+      overflow: auto;
+    }
+
+    /* Header strip: NavBar full-width above shell.
+       Compositional fallback — NavBar has no CTA slot, so the
+       primary "Generate CFO pack" Button is pulled into a
+       sub-toolbar row immediately below it. */
+    .topbar { background: var(--ap-bg-surface); border-bottom: 1px solid var(--ap-border-soft); }
+    .topbar__actions {
+      max-width: 1440px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: flex-end;
+      gap: var(--ap-space-2);
+      padding: var(--ap-space-2) var(--ap-space-6);
+    }
+
+    /* =====================================================
+       Card primitive (composed — DS has no <Card>)
+       ===================================================== */
+    .card {
+      background: var(--ap-bg-surface);
+      border: 1px solid var(--ap-border-soft);
+      border-radius: var(--ap-radius-md);
+      padding: var(--ap-space-4);
+      box-shadow: var(--ap-shadow-sm);
+    }
+    .card--flush { padding: 0; }
+    .card__head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 0 0 var(--ap-space-3);
+      gap: var(--ap-space-2);
+    }
+    .card__title {
+      margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .04em;
+      text-transform: uppercase; color: var(--ap-text-2);
+    }
+    .card__sub {
+      margin: 0; font-size: 12px; color: var(--ap-text-muted);
+    }
+
+    /* =====================================================
+       KPI strip
+       ===================================================== */
+    .kpi-strip {
+      display: flex; gap: var(--ap-space-3);
+      overflow-x: auto; scroll-snap-type: x mandatory;
+      padding-bottom: var(--ap-space-1);
+      list-style: none; margin: 0;
+    }
+    .kpi-card {
+      flex: 1 1 220px; scroll-snap-align: start;
+      background: var(--ap-bg-surface);
+      border: 1px solid var(--ap-border-soft);
+      border-radius: var(--ap-radius-md);
+      padding: var(--ap-space-3) var(--ap-space-4);
+      display: flex; flex-direction: column; gap: var(--ap-space-1);
+      min-width: 0;
+    }
+    .kpi-card__label {
+      font-size: 11px; font-weight: 600; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--ap-text-muted);
+    }
+    .kpi-card__value {
+      font-size: var(--ap-text-display-sm); font-weight: 700; line-height: 1.1;
+      font-variant-numeric: tabular-nums; letter-spacing: -0.01em;
+      color: var(--ap-text);
+    }
+    .kpi-card__row {
+      display: flex; align-items: center; justify-content: space-between; gap: var(--ap-space-2);
+      margin-top: var(--ap-space-1);
+    }
+    .kpi-card__spark { display: block; }
+
+    /* =====================================================
+       Status banner row
+       ===================================================== */
+    .banner-row { display: block; }
+    .banner-trailing {
+      margin-left: var(--ap-space-2); font-weight: 600;
+      color: var(--ap-info); cursor: pointer; text-decoration: underline;
+      background: none; border: none; padding: 0; font: inherit;
+    }
+
+    /* =====================================================
+       Filter bar
+       ===================================================== */
+    .filter-bar {
+      display: flex; flex-wrap: wrap; align-items: end;
+      gap: var(--ap-space-3);
+      padding: var(--ap-space-3) var(--ap-space-4);
+      background: var(--ap-bg-surface);
+      border: 1px solid var(--ap-border-soft);
+      border-radius: var(--ap-radius-md);
+    }
+    .filter-bar__group {
+      display: flex; flex-direction: column; gap: var(--ap-space-1);
+      min-width: 0;
+    }
+    .filter-bar__group-label {
+      font-size: 11px; font-weight: 600; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--ap-text-muted);
+    }
+    .filter-bar__spacer { flex: 1; }
+    .seg {
+      display: inline-flex; border: 1px solid var(--ap-border);
+      border-radius: var(--ap-radius); overflow: hidden;
+      background: var(--ap-bg-surface);
+    }
+    .seg__btn {
+      appearance: none; border: 0; background: transparent;
+      padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 500;
+      color: var(--ap-text-2); cursor: pointer;
+      border-right: 1px solid var(--ap-border);
+    }
+    .seg__btn:last-child { border-right: 0; }
+    .seg__btn[aria-pressed="true"] {
+      background: var(--ap-primary); color: var(--ap-text-on-primary);
+    }
+    .seg__btn:focus-visible { outline: 2px solid var(--ap-primary-2); outline-offset: 2px; }
+
+    .filter-chips {
+      display: flex; flex-wrap: wrap; align-items: center; gap: var(--ap-space-2);
+      padding: var(--ap-space-2) 0 0;
+    }
+
+    /* =====================================================
+       Tab content area
+       ===================================================== */
+    .tabs-shell { background: var(--ap-bg-surface); border: 1px solid var(--ap-border-soft); border-radius: var(--ap-radius-md); overflow: hidden; }
+    .tabs-shell__head { padding: 0 var(--ap-space-3); border-bottom: 1px solid var(--ap-border-soft); overflow-x: auto; }
+    .tabs-shell__body { padding: var(--ap-space-4); display: flex; flex-direction: column; gap: var(--ap-space-4); }
+
+    .grid-card { padding: 0; overflow: hidden; }
+    .grid-card .ag-theme-quartz { --ag-border-color: var(--ap-border-soft); }
+
+    .placeholder-chart {
+      height: 200px; width: 100%;
+      border-radius: var(--ap-radius);
+      background:
+        linear-gradient(90deg, transparent 0 1px, transparent 1px) 0 0 / 40px 100%,
+        linear-gradient(var(--ap-border-soft), var(--ap-border-soft));
+      position: relative; overflow: hidden;
+    }
+    .placeholder-chart svg { width: 100%; height: 100%; display: block; }
+
+    .summary-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ap-space-3); }
+    .summary-tile {
+      background: var(--ap-bg-subtle);
+      border: 1px solid var(--ap-border-soft);
+      border-radius: var(--ap-radius);
+      padding: var(--ap-space-3);
+    }
+    .summary-tile__label {
+      font-size: 11px; font-weight: 600; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--ap-text-muted);
+    }
+    .summary-tile__value {
+      font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums;
+      margin-top: var(--ap-space-1); color: var(--ap-text);
+    }
+
+    .ar-ap-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--ap-space-3); }
+
+    .scroll-hint {
+      font-size: 11px; color: var(--ap-text-muted);
+      padding: var(--ap-space-2) var(--ap-space-3); display: none;
+    }
+
+    /* =====================================================
+       Right rail cards
+       ===================================================== */
+    .alert-row {
+      display: grid; grid-template-columns: auto 1fr auto;
+      gap: var(--ap-space-2); align-items: start;
+      padding: var(--ap-space-2) 0;
+      border-bottom: 1px solid var(--ap-border-soft);
+    }
+    .alert-row:last-child { border-bottom: 0; }
+    .alert-row__title { font-size: 13px; font-weight: 600; color: var(--ap-text); line-height: 1.3; }
+    .alert-row__meta { font-size: 11px; color: var(--ap-text-muted); margin-top: 2px; }
+    .alert-row__time { font-size: 11px; color: var(--ap-text-muted); white-space: nowrap; }
+
+    /* ProgressBar fallback — DS has no exported ProgressBar */
+    .progress {
+      height: 6px; width: 100%; background: var(--ap-bg-muted);
+      border-radius: 999px; overflow: hidden;
+    }
+    .progress__fill {
+      display: block; height: 100%; background: var(--ap-primary);
+      border-radius: 999px;
+    }
+    .progress--error .progress__fill { background: var(--ap-error); }
+
+    .checklist { display: flex; flex-direction: column; gap: var(--ap-space-1); }
+    .checklist__item {
+      display: grid; grid-template-columns: auto 1fr auto;
+      gap: var(--ap-space-2); align-items: center;
+      font-size: 13px; padding: 4px 0;
+    }
+    .checklist__item--done .checklist__label { color: var(--ap-text-muted); text-decoration: line-through; }
+
+    .approvals-row {
+      display: grid; grid-template-columns: 1fr auto;
+      gap: var(--ap-space-2); padding: var(--ap-space-2) 0;
+      border-bottom: 1px solid var(--ap-border-soft);
+      font-size: 13px;
+    }
+    .approvals-row:last-child { border-bottom: 0; }
+    .approvals-row__user { font-weight: 600; color: var(--ap-text); }
+    .approvals-row__meta { font-size: 11px; color: var(--ap-text-muted); margin-top: 2px; }
+    .approvals-row__amount { font-variant-numeric: tabular-nums; font-weight: 600; }
+    .approvals-row__time { font-size: 11px; color: var(--ap-text-muted); }
+
+    .quick-links { display: flex; flex-direction: column; gap: var(--ap-space-1); align-items: stretch; }
+    .quick-links button { justify-content: flex-start; }
+
+    /* =====================================================
+       AG Grid cell renderer chrome
+       ===================================================== */
+    .var-cell { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+    .var-cell--pos { color: var(--ap-success-2); }
+    .var-cell--neg { color: var(--ap-error-2); }
+    .var-cell__arrow { width: 8px; height: 8px; display: inline-block; }
+
+    .rag-cell { display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+    }
+    .rag-cell--success { background: var(--ap-success-bg); color: var(--ap-success-2); }
+    .rag-cell--warning { background: var(--ap-warning-bg); color: var(--ap-warning-2); }
+    .rag-cell--error   { background: var(--ap-error-bg);   color: var(--ap-error-2); }
+
+    .ag-row-subtotal { background: var(--ap-bg-subtle) !important; font-weight: 700; }
+    .ag-cell-overdue { color: var(--ap-error-2); font-weight: 600; }
+
+    .ag-theme-quartz {
+      --ag-font-family: var(--ap-font);
+      --ag-foreground-color: var(--ap-text);
+      --ag-background-color: var(--ap-bg-surface);
+      --ag-header-foreground-color: var(--ap-text-2);
+      --ag-header-background-color: var(--ap-bg-subtle);
+      --ag-odd-row-background-color: var(--ap-bg-surface);
+      --ag-row-hover-color: var(--ap-bg-muted);
+      --ag-border-color: var(--ap-border-soft);
+      --ag-border-radius: var(--ap-radius);
+      --ag-cell-horizontal-padding: var(--ap-space-3);
+      width: 100%; min-width: 0;
+    }
+    .ag-theme-quartz .ag-header-cell-text {
+      font-weight: 600; text-transform: uppercase; letter-spacing: .04em; font-size: 11px;
+    }
+
+    /* =====================================================
+       Responsive — three skill-mandated breakpoints
+       ===================================================== */
+    @media (max-width: 900px) {
+      .shell { grid-template-columns: minmax(0, 1fr); }
+      .shell__rail {
+        position: static; max-height: none; overflow: visible;
+        flex-direction: row; overflow-x: auto;
+        scroll-snap-type: x mandatory;
+      }
+      .shell__rail > * { flex: 0 0 280px; scroll-snap-align: start; }
+      .ar-ap-row { grid-template-columns: minmax(0, 1fr); }
+      .summary-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+      .shell { padding: 0 var(--ap-space-3) var(--ap-space-5); }
+      .kpi-strip {
+        flex-direction: column; overflow: visible;
+        scroll-snap-type: none;
+      }
+      .kpi-card { flex: 1 1 auto; width: 100%; }
+      .filter-bar__inline { display: none; }
+      .filter-bar__mobile { display: inline-flex; }
+      .ar-ap-row { grid-template-columns: minmax(0, 1fr); }
+      .summary-tiles { grid-template-columns: minmax(0, 1fr); }
+      .scroll-hint { display: block; }
+    }
+
+    @media (max-width: 400px) {
+      .topbar__actions { display: none; }
+      .kpi-card__value { font-size: var(--ap-text-display-xs); }
+    }
+
+    /* hidden by default; shown only ≤640px */
+    .filter-bar__mobile { display: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div class="design-badge">waaaat — prototype</div>
+
+  <script type="text/babel" data-type="module" data-presets="react">
+    import {
+      React,
+      createRoot,
+      NavBar,
+      Button,
+      Banner,
+      Dropdown,
+      Toggle,
+      Tag,
+      TabNavigation,
+      Tab,
+      Dialog,
+      Icon,
+      Spinner,
+      ToastProvider,
+      useToast,
+      AgGrid,
+    } from "../vendor/alix-ui.js";
+
+    const { useState, useMemo, useCallback } = React;
+
+    /* =====================================================
+       Mock data
+       ===================================================== */
+    const sparkSeries = (seed) => {
+      const out = []; let v = 50 + (seed % 30);
+      for (let i = 0; i < 12; i++) {
+        v += Math.sin((i + seed) * 0.7) * 6 + ((seed * 7 + i) % 5) - 2;
+        out.push(Math.max(10, Math.min(90, v)));
+      }
+      return out;
+    };
+
+    const KPIS = [
+      { id: "rev",  label: "Revenue (MTD)",   value: 18420000, prior: 17110000, currency: true, trend: sparkSeries(1) },
+      { id: "ni",   label: "Net income",      value:  4220000, prior:  3870000, currency: true, trend: sparkSeries(5) },
+      { id: "cash", label: "Operating cash",  value: 32480000, prior: 30950000, currency: true, trend: sparkSeries(4) },
+      { id: "gm",   label: "Gross margin %",  value: 42.6,     prior: 41.1,     percent: true,  trend: sparkSeries(3) },
+    ];
+
+    const TOP_VARIANCES = [
+      { lineItem: "Software licensing", actual: 1240000, budget:  980000, variance:  260000, pct:  26.5 },
+      { lineItem: "Cloud infrastructure", actual: 2110000, budget: 1900000, variance: 210000, pct: 11.1 },
+      { lineItem: "Professional services", actual:  860000, budget: 1100000, variance: -240000, pct: -21.8 },
+      { lineItem: "Marketing programs", actual:  620000, budget:  500000, variance:  120000, pct:  24.0 },
+      { lineItem: "Travel & entertainment", actual:  180000, budget:  260000, variance:  -80000, pct: -30.8 },
+    ];
+
+    const PNL = [
+      { lineItem: "Revenue",                       current: 18420000, prior: 17110000, variance: 1310000, pctVariance:  7.7, depth: 0, isSubtotal: true },
+      { lineItem: "Product revenue",               current: 13110000, prior: 12300000, variance:  810000, pctVariance:  6.6, depth: 1 },
+      { lineItem: "Services revenue",              current:  3920000, prior:  3680000, variance:  240000, pctVariance:  6.5, depth: 1 },
+      { lineItem: "Subscription revenue",          current:  1390000, prior:  1130000, variance:  260000, pctVariance: 23.0, depth: 1 },
+      { lineItem: "Cost of goods sold",            current: -7820000, prior: -7340000, variance: -480000, pctVariance:  6.5, depth: 0, isSubtotal: true },
+      { lineItem: "Materials",                     current: -3960000, prior: -3700000, variance: -260000, pctVariance:  7.0, depth: 1 },
+      { lineItem: "Direct labor",                  current: -2410000, prior: -2280000, variance: -130000, pctVariance:  5.7, depth: 1 },
+      { lineItem: "Overhead",                      current: -1450000, prior: -1360000, variance:  -90000, pctVariance:  6.6, depth: 1 },
+      { lineItem: "Gross profit",                  current: 10600000, prior:  9770000, variance:  830000, pctVariance:  8.5, depth: 0, isSubtotal: true },
+      { lineItem: "Operating expenses",            current: -6380000, prior: -5910000, variance: -470000, pctVariance:  8.0, depth: 0, isSubtotal: true },
+      { lineItem: "Sales & marketing",             current: -2640000, prior: -2410000, variance: -230000, pctVariance:  9.5, depth: 1 },
+      { lineItem: "Research & development",        current: -2070000, prior: -1960000, variance: -110000, pctVariance:  5.6, depth: 1 },
+      { lineItem: "General & administrative",      current: -1670000, prior: -1540000, variance: -130000, pctVariance:  8.4, depth: 1 },
+      { lineItem: "Operating income",              current:  4220000, prior:  3860000, variance:  360000, pctVariance:  9.3, depth: 0, isSubtotal: true },
+      { lineItem: "Other income / expense",        current:   -90000, prior:   -40000, variance:  -50000, pctVariance:125.0, depth: 0 },
+      { lineItem: "Interest expense",              current:  -240000, prior:  -210000, variance:  -30000, pctVariance: 14.3, depth: 1 },
+      { lineItem: "Interest income",               current:    80000, prior:    70000, variance:   10000, pctVariance: 14.3, depth: 1 },
+      { lineItem: "FX gain / (loss)",              current:    70000, prior:   100000, variance:  -30000, pctVariance:-30.0, depth: 1 },
+      { lineItem: "Pre-tax income",                current:  4130000, prior:  3820000, variance:  310000, pctVariance:  8.1, depth: 0, isSubtotal: true },
+      { lineItem: "Income tax",                    current:  -910000, prior:  -840000, variance:  -70000, pctVariance:  8.3, depth: 0 },
+      { lineItem: "Net income",                    current:  3220000, prior:  2980000, variance:  240000, pctVariance:  8.1, depth: 0, isSubtotal: true },
+    ];
+
+    const CASH_FLOW = [
+      { category: "Operating",   lineItem: "Net income",                       amount:  3220000 },
+      { category: "Operating",   lineItem: "Depreciation & amortization",      amount:   840000 },
+      { category: "Operating",   lineItem: "Stock-based compensation",         amount:   310000 },
+      { category: "Operating",   lineItem: "Changes in working capital",       amount:  -560000 },
+      { category: "Operating",   lineItem: "Other operating adjustments",      amount:    90000 },
+      { category: "Investing",   lineItem: "Capital expenditures",             amount: -1410000 },
+      { category: "Investing",   lineItem: "Acquisitions, net of cash",        amount:  -650000 },
+      { category: "Investing",   lineItem: "Purchase of securities",           amount: -2200000 },
+      { category: "Investing",   lineItem: "Sale of securities",               amount:  1850000 },
+      { category: "Financing",   lineItem: "Repurchase of stock",              amount:  -780000 },
+      { category: "Financing",   lineItem: "Dividends paid",                   amount:  -420000 },
+      { category: "Financing",   lineItem: "Proceeds from debt",               amount:   500000 },
+      { category: "Financing",   lineItem: "Repayment of debt",                amount:  -180000 },
+      { category: "Operating",   lineItem: "Accounts receivable change",       amount:  -210000 },
+      { category: "Operating",   lineItem: "Accounts payable change",          amount:   140000 },
+    ];
+
+    const AR_AGING = [
+      { customer: "Acme Industrial Holdings", current: 184000, d1_30: 92000, d31_60: 41000, d61_90:     0, d90plus:     0, total:  317000 },
+      { customer: "Bering Logistics LLC",     current: 220000, d1_30:  0,     d31_60: 12000, d61_90: 18000, d90plus:  4500, total:  254500 },
+      { customer: "Cobalt Energy Partners",   current:  68000, d1_30: 24000, d31_60:     0, d61_90:     0, d90plus:     0, total:   92000 },
+      { customer: "Delphi Manufacturing",     current: 142000, d1_30: 38000, d31_60: 21000, d61_90: 11000, d90plus: 16000, total:  228000 },
+      { customer: "Helios Renewable Energy Systems & Distribution Co. International", current: 410000, d1_30: 210000, d31_60: 88000, d61_90: 32000, d90plus: 14000, total: 754000 },
+      { customer: "Inktide Media Group",      current:   8200, d1_30:  2100, d31_60:     0, d61_90:     0, d90plus:     0, total:   10300 },
+      { customer: "Junction Robotics Inc.",   current: 192000, d1_30: 36000, d31_60:     0, d61_90:     0, d90plus:     0, total:  228000 },
+      { customer: "Kestrel Foods",            current:     0,  d1_30:     0, d31_60:     0, d61_90:     0, d90plus:     0, total:        0 },
+      { customer: "Lumen Diagnostics",        current:  74000, d1_30:     0, d31_60: 16000, d61_90:     0, d90plus:     0, total:   90000 },
+      { customer: "Meridian Pharma",          current: 312000, d1_30: 64000, d31_60: 22000, d61_90:     0, d90plus:     0, total:  398000 },
+      { customer: "Northwind Components",     current:  96000, d1_30: 18000, d31_60:     0, d61_90:  9000, d90plus:  2400, total:  125400 },
+      { customer: "Orbit Telecom",            current: 224000, d1_30: 78000, d31_60:     0, d61_90:     0, d90plus:     0, total:  302000 },
+    ];
+
+    const AP_OUTSTANDING = [
+      { vendor: "Granite Office Supplies",        dueDate: "2026-05-21", amount:   18420, daysOutstanding: 12, status: "On track" },
+      { vendor: "Sentinel Security Services",     dueDate: "2026-05-17", amount:   46200, daysOutstanding: 16, status: "Due soon" },
+      { vendor: "Cloudbase Hosting",              dueDate: "2026-05-03", amount:  124000, daysOutstanding: 30, status: "Overdue" },
+      { vendor: "Quanta Hardware Distribution",   dueDate: "2026-04-22", amount:  238000, daysOutstanding: 41, status: "Overdue" },
+      { vendor: "PrimeLegal LLP",                 dueDate: "2026-05-28", amount:   62000, daysOutstanding:  5, status: "On track" },
+      { vendor: "Equinox Marketing",              dueDate: "2026-05-10", amount:   88000, daysOutstanding: 23, status: "Due soon" },
+      { vendor: "Polaris Travel Services",        dueDate: "2026-06-02", amount:   14600, daysOutstanding:  1, status: "On track" },
+      { vendor: "Atlas Freight",                  dueDate: "2026-04-30", amount:   72400, daysOutstanding: 33, status: "Overdue" },
+      { vendor: "Vertex Insurance Brokers",       dueDate: "2026-05-25", amount:   98000, daysOutstanding:  8, status: "On track" },
+      { vendor: "Mariner Telecom",                dueDate: "2026-05-18", amount:   54200, daysOutstanding: 15, status: "Due soon" },
+    ];
+
+    const BUDGET = [
+      { department: "Engineering",       budget: 4200000, actual: 4380000, variance:  180000, pctVariance:  4.3, rag: "warning" },
+      { department: "Sales",             budget: 2800000, actual: 2640000, variance: -160000, pctVariance: -5.7, rag: "success" },
+      { department: "Marketing",         budget:  900000, actual: 1080000, variance:  180000, pctVariance: 20.0, rag: "error"   },
+      { department: "Customer success",  budget: 1200000, actual: 1140000, variance:  -60000, pctVariance: -5.0, rag: "success" },
+      { department: "Finance",           budget:  620000, actual:  640000, variance:   20000, pctVariance:  3.2, rag: "warning" },
+      { department: "HR",                budget:  410000, actual:  390000, variance:  -20000, pctVariance: -4.9, rag: "success" },
+      { department: "IT operations",     budget:  840000, actual:  990000, variance:  150000, pctVariance: 17.9, rag: "error"   },
+      { department: "Legal",             budget:  340000, actual:  320000, variance:  -20000, pctVariance: -5.9, rag: "success" },
+      { department: "R&D",               budget: 2100000, actual: 2070000, variance:  -30000, pctVariance: -1.4, rag: "success" },
+      { department: "Facilities",        budget:  280000, actual:  330000, variance:   50000, pctVariance: 17.9, rag: "error"   },
+    ];
+
+    const HEADCOUNT = [
+      { department: "Engineering",      headcount: 184, loadedCost: 28400000, vsPlan:  4 },
+      { department: "Sales",            headcount:  92, loadedCost: 14100000, vsPlan: -3 },
+      { department: "Marketing",        headcount:  41, loadedCost:  5800000, vsPlan:  2 },
+      { department: "Customer success", headcount:  68, loadedCost:  8200000, vsPlan:  0 },
+      { department: "Finance",          headcount:  28, loadedCost:  4200000, vsPlan:  1 },
+      { department: "HR",               headcount:  19, loadedCost:  2400000, vsPlan:  0 },
+      { department: "IT operations",    headcount:  34, loadedCost:  4900000, vsPlan:  2 },
+      { department: "R&D",              headcount:  76, loadedCost: 12800000, vsPlan: -1 },
+    ];
+
+    const ALERTS = [
+      { severity: "error",   title: "Covenant breach risk — Q2 leverage at 3.4x",     time: "12m ago" },
+      { severity: "error",   title: "AR > 90d up 22% w/w (Delphi, Northwind)",        time: "1h ago"  },
+      { severity: "warning", title: "Marketing dept 20% over budget MTD",             time: "3h ago"  },
+      { severity: "warning", title: "AP overdue: 3 vendors > 30 days",                time: "5h ago"  },
+      { severity: "basic",   title: "FX exposure note posted by treasury",            time: "yesterday" },
+    ];
+
+    const CLOSE_CHECKLIST = [
+      { task: "AR reconciliation",            status: "done" },
+      { task: "AP reconciliation",            status: "done" },
+      { task: "Intercompany elimination",     status: "in_progress" },
+      { task: "Inventory cutoff",             status: "in_progress" },
+      { task: "Accruals & deferrals",         status: "not_started" },
+      { task: "FX revaluation",               status: "blocked" },
+      { task: "Consolidation",                status: "not_started" },
+      { task: "Final review & sign-off",      status: "not_started" },
+    ];
+
+    const APPROVALS = [
+      { user: "M. Park",     entity: "US Ops",   amount:  124000, time: "2m"  },
+      { user: "L. Diaz",     entity: "EU Tech",  amount:   58000, time: "18m" },
+      { user: "J. Tanaka",   entity: "APAC",     amount:  312000, time: "1h"  },
+      { user: "R. Okafor",   entity: "Corp",     amount:   16400, time: "3h"  },
+      { user: "S. Vance",    entity: "US Ops",   amount:   84000, time: "5h"  },
+    ];
+
+    const ENTITY_OPTIONS = [
+      { value: "us-ops",   label: "US Operations" },
+      { value: "eu-tech",  label: "EU Technology" },
+      { value: "apac",     label: "APAC" },
+      { value: "latam",    label: "LATAM" },
+      { value: "corp",     label: "Corporate" },
+      { value: "treasury", label: "Treasury" },
+    ];
+
+    const CURRENCY_OPTIONS = [
+      { value: "USD", label: "USD — US Dollar" },
+      { value: "EUR", label: "EUR — Euro" },
+      { value: "GBP", label: "GBP — British Pound" },
+      { value: "JPY", label: "JPY — Japanese Yen" },
+    ];
+
+    const COMPARE_OPTIONS = [
+      { value: "prior_period", label: "Prior period" },
+      { value: "prior_year",   label: "Prior year" },
+      { value: "budget",       label: "Budget" },
+    ];
+
+    const FX_TO_USD = { USD: 1, EUR: 1.08, GBP: 1.26, JPY: 0.0064 };
+
+    /* =====================================================
+       Formatters
+       ===================================================== */
+    const currencyFormatter = (currency) => new Intl.NumberFormat("en-US", {
+      style: "currency", currency, currencySign: "accounting",
+      maximumFractionDigits: 0,
+    });
+    const fmtPct = (n) =>
+      (n > 0 ? "+" : "") + n.toFixed(1) + "%";
+    const fmtSigned = (n, fmt) => {
+      const sign = n > 0 ? "+" : "";
+      return sign + fmt.format(n);
+    };
+    const convert = (usdAmount, currency, fxOn) => {
+      if (fxOn || currency === "USD") return usdAmount;
+      const rate = FX_TO_USD[currency] || 1;
+      return usdAmount / rate;
+    };
+
+    /* =====================================================
+       Cell renderers (HTML strings — AG Grid valueFormatter style)
+       ===================================================== */
+    const varianceRenderer = (params) => {
+      if (params.value == null || isNaN(params.value)) return "";
+      const v = Number(params.value);
+      const pos = v >= 0;
+      const fmt = params.context?.currency || currencyFormatter("USD");
+      const display = fmtSigned(v, fmt);
+      const arrow = pos
+        ? '<svg class="var-cell__arrow" viewBox="0 0 8 8" aria-hidden="true"><polygon points="4,0 8,8 0,8" fill="currentColor"/></svg>'
+        : '<svg class="var-cell__arrow" viewBox="0 0 8 8" aria-hidden="true"><polygon points="4,8 0,0 8,0" fill="currentColor"/></svg>';
+      const cls = pos ? "var-cell var-cell--pos" : "var-cell var-cell--neg";
+      return `<span class="${cls}" aria-label="${pos ? "up" : "down"} ${display}">${arrow}<span>${display}</span></span>`;
+    };
+
+    const variancePctRenderer = (params) => {
+      if (params.value == null || isNaN(params.value)) return "";
+      const v = Number(params.value);
+      const pos = v >= 0;
+      const display = fmtPct(v);
+      const cls = pos ? "var-cell var-cell--pos" : "var-cell var-cell--neg";
+      return `<span class="${cls}" aria-label="${pos ? "up" : "down"} ${display}">${display}</span>`;
+    };
+
+    const ragRenderer = (params) => {
+      const v = params.value;
+      if (!v) return "";
+      const labels = {
+        success: "Green — on or under budget",
+        warning: "Amber — slightly over budget",
+        error:   "Red — significantly over budget",
+      };
+      const cls = `rag-cell rag-cell--${v}`;
+      const text = v === "success" ? "On track" : v === "warning" ? "Watch" : "Over";
+      return `<span class="${cls}" role="status" aria-label="${labels[v]}">${text}</span>`;
+    };
+
+    const statusRenderer = (params) => {
+      const v = params.value;
+      if (!v) return "";
+      const tone = v === "Overdue" ? "error" : v === "Due soon" ? "warning" : "success";
+      return `<span class="rag-cell rag-cell--${tone}" role="status" aria-label="${v}">${v}</span>`;
+    };
+
+    /* =====================================================
+       Sparkline (SVG)
+       ===================================================== */
+    function Sparkline({ data, label, accent = "var(--ap-primary)" }) {
+      const w = 96, h = 28, pad = 2;
+      const min = Math.min(...data), max = Math.max(...data);
+      const range = (max - min) || 1;
+      const stepX = (w - pad * 2) / (data.length - 1);
+      const pts = data.map((d, i) => {
+        const x = pad + i * stepX;
+        const y = h - pad - ((d - min) / range) * (h - pad * 2);
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      });
+      const linePts = pts.join(" ");
+      const areaPts = `${pad},${h - pad} ${linePts} ${w - pad},${h - pad}`;
+      const above = data.filter((d) => d >= data[0]).length;
+      return (
+        <svg className="kpi-card__spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`}
+             role="img" aria-label={label || `12-point trend, ${above} of 12 points at or above start`}>
+          <polygon points={areaPts} fill={accent} opacity="0.12" />
+          <polyline points={linePts} fill="none" stroke={accent} strokeWidth="1.5"
+                    strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    }
+
+    /* =====================================================
+       KPI card
+       ===================================================== */
+    function KpiCard({ kpi, currency, fxOn }) {
+      const value = kpi.currency ? convert(kpi.value, currency, fxOn) : kpi.value;
+      const prior = kpi.currency ? convert(kpi.prior, currency, fxOn) : kpi.prior;
+      const deltaAbs = value - prior;
+      const deltaPct = (deltaAbs / Math.abs(prior || 1)) * 100;
+      const good = kpi.invertGood ? deltaAbs < 0 : deltaAbs > 0;
+      const tagType = good ? "success" : deltaAbs === 0 ? "basic" : "error";
+      const tagLabel = `${deltaAbs >= 0 ? "+" : ""}${deltaPct.toFixed(1)}%`;
+
+      const valueText = kpi.percent
+        ? `${value.toFixed(1)}%`
+        : kpi.currency
+          ? currencyFormatter(fxOn ? "USD" : currency).format(value)
+          : new Intl.NumberFormat("en-US").format(value);
+
+      return (
+        <li className="kpi-card" role="listitem">
+          <span className="kpi-card__label">{kpi.label}</span>
+          <span className="kpi-card__value" aria-label={`${kpi.label}: ${valueText}`}>{valueText}</span>
+          <div className="kpi-card__row">
+            {tagType === "basic" ? (
+              <Tag type="basic" color="gray" size="sm" structure="solid" label={tagLabel} noIcon />
+            ) : (
+              <Tag type={tagType} size="sm" structure="solid" label={tagLabel} />
+            )}
+            <Sparkline data={kpi.trend}
+              label={`${kpi.label} 12-month trend, ${good ? "favourable" : "unfavourable"} vs prior period`}
+              accent={good ? "var(--ap-success)" : "var(--ap-error)"} />
+          </div>
+        </li>
+      );
+    }
+
+    /* =====================================================
+       Segmented button group (date presets)
+       ===================================================== */
+    function SegmentedDateRange({ value, onChange }) {
+      const items = [
+        { value: "month",   label: "Month" },
+        { value: "quarter", label: "Quarter" },
+        { value: "ytd",     label: "YTD" },
+        { value: "custom",  label: "Custom" },
+      ];
+      return (
+        <div role="group" aria-label="Date range" className="seg">
+          {items.map((it) => (
+            <button key={it.value} type="button" className="seg__btn"
+                    aria-pressed={value === it.value} onClick={() => onChange(it.value)}>
+              {it.label}
+            </button>
+          ))}
+        </div>
+      );
+    }
+
+    /* =====================================================
+       Filter bar
+       ===================================================== */
+    function FilterBar({ state, setState, onClearAll }) {
+      const setPreset    = (v) => setState((s) => ({ ...s, datePreset: v }));
+      const setEntities  = (v) => setState((s) => ({ ...s, entities: v }));
+      const setCurrency  = (v) => setState((s) => ({ ...s, currency: v[0] || "USD" }));
+      const setFxOn      = (v) => setState((s) => ({ ...s, fxOn: !!v }));
+      const setCompareTo = (v) => setState((s) => ({ ...s, compareTo: v[0] || "prior_period" }));
+      const [mobileOpen, setMobileOpen] = useState(false);
+
+      const activeChips = useMemo(() => {
+        const out = [];
+        if (state.datePreset !== "month") out.push({ id: "date", label: `Date · ${state.datePreset.toUpperCase()}` });
+        state.entities.forEach((e) => {
+          const o = ENTITY_OPTIONS.find((x) => x.value === e);
+          if (o) out.push({ id: `e-${e}`, label: `Entity · ${o.label}` });
+        });
+        if (state.currency !== "USD") out.push({ id: "c", label: `Currency · ${state.currency}` });
+        if (state.fxOn) out.push({ id: "fx", label: "FX-normalized" });
+        if (state.compareTo !== "prior_period") {
+          const o = COMPARE_OPTIONS.find((x) => x.value === state.compareTo);
+          if (o) out.push({ id: "cmp", label: `Compare · ${o.label}` });
+        }
+        return out;
+      }, [state]);
+
+      const removeChip = (id) => {
+        if (id === "date") setPreset("month");
+        else if (id.startsWith("e-")) setState((s) => ({ ...s, entities: s.entities.filter((x) => `e-${x}` !== id) }));
+        else if (id === "c") setCurrency(["USD"]);
+        else if (id === "fx") setFxOn(false);
+        else if (id === "cmp") setCompareTo(["prior_period"]);
+      };
+
+      return (
+        <>
+          <div className="filter-bar" role="region" aria-label="Filters">
+            <div className="filter-bar__group filter-bar__inline">
+              <span className="filter-bar__group-label">Date range</span>
+              <SegmentedDateRange value={state.datePreset} onChange={setPreset} />
+            </div>
+
+            <div className="filter-bar__group filter-bar__inline" style={{ minWidth: 200 }}>
+              <Dropdown
+                label="Entities"
+                multiSelect
+                options={ENTITY_OPTIONS}
+                value={state.entities}
+                onChange={setEntities}
+                placeholder="All entities"
+                selectedOptionsLabel="entities selected"
+                allOptionsSelectedLabel="All entities"
+              />
+            </div>
+
+            <div className="filter-bar__group filter-bar__inline" style={{ minWidth: 180 }}>
+              <Dropdown
+                label="Currency"
+                options={CURRENCY_OPTIONS}
+                value={[state.currency]}
+                onChange={setCurrency}
+                disabled={state.fxOn}
+                placeholder={state.fxOn ? "USD (normalized)" : "USD"}
+              />
+            </div>
+
+            <div className="filter-bar__group filter-bar__inline">
+              <span className="filter-bar__group-label">&nbsp;</span>
+              <Toggle label="FX-normalized" checked={state.fxOn} onChange={setFxOn} labelPosition="right" />
+            </div>
+
+            <div className="filter-bar__group filter-bar__inline" style={{ minWidth: 200 }}>
+              <Dropdown
+                label="Compare to"
+                options={COMPARE_OPTIONS}
+                value={[state.compareTo]}
+                onChange={setCompareTo}
+              />
+            </div>
+
+            <div className="filter-bar__spacer" />
+
+            <div className="filter-bar__mobile">
+              <Button type="secondary" size="sm" icon="ap-icon-filter" onClick={() => setMobileOpen(true)}>
+                Filters · {activeChips.length}
+              </Button>
+            </div>
+          </div>
+
+          {activeChips.length > 0 && (
+            <div className="filter-chips" role="region" aria-label="Active filters">
+              {activeChips.map((c) => (
+                <Tag key={c.id} type="basic" color="gray" size="md" structure="border"
+                     label={c.label} onClose={() => removeChip(c.id)} />
+              ))}
+              <Button type="tertiary" size="sm" onClick={onClearAll}>Clear all</Button>
+            </div>
+          )}
+
+          {mobileOpen && (
+            <Dialog
+              isOpen
+              onClose={() => setMobileOpen(false)}
+              title="Filters"
+              description="Apply filters to the dashboard."
+              confirmButtonText="Apply"
+              cancelButtonText="Cancel"
+              onConfirm={() => setMobileOpen(false)}
+              onCancel={() => setMobileOpen(false)}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px", paddingTop: "8px" }}>
+                <SegmentedDateRange value={state.datePreset} onChange={setPreset} />
+                <Dropdown label="Entities" multiSelect options={ENTITY_OPTIONS}
+                          value={state.entities} onChange={setEntities} placeholder="All entities" />
+                <Dropdown label="Currency" options={CURRENCY_OPTIONS}
+                          value={[state.currency]} onChange={setCurrency} disabled={state.fxOn} />
+                <Toggle label="FX-normalized" checked={state.fxOn} onChange={setFxOn} labelPosition="right" />
+                <Dropdown label="Compare to" options={COMPARE_OPTIONS}
+                          value={[state.compareTo]} onChange={setCompareTo} />
+              </div>
+            </Dialog>
+          )}
+        </>
+      );
+    }
+
+    /* =====================================================
+       Grids
+       ===================================================== */
+    const defaultColDef = { resizable: true, sortable: true, filter: true, flex: 1, minWidth: 96 };
+    const numericCellClass = "ag-right-aligned-cell";
+
+    function gridContext(currency, fxOn) {
+      return { currency: currencyFormatter(fxOn ? "USD" : currency), fxOn, ccy: fxOn ? "USD" : currency };
+    }
+
+    function makeCurrencyFormatter(ctx) {
+      return (p) => (p.value == null || p.value === "" ? "" : ctx.currency.format(Number(p.value)));
+    }
+
+    function VariancesGrid({ rows, ctx }) {
+      const fmt = makeCurrencyFormatter(ctx);
+      const columnDefs = useMemo(() => [
+        { field: "lineItem", headerName: "Line item", flex: 2, pinned: "left", minWidth: 180 },
+        { field: "actual",   headerName: "Actual",   type: "numericColumn", valueFormatter: fmt, cellClass: numericCellClass },
+        { field: "budget",   headerName: "Budget",   type: "numericColumn", valueFormatter: fmt, cellClass: numericCellClass },
+        { field: "variance", headerName: "Variance", type: "numericColumn", cellRenderer: varianceRenderer, cellClass: numericCellClass },
+        { field: "pct",      headerName: "% var",    type: "numericColumn", cellRenderer: variancePctRenderer, cellClass: numericCellClass, maxWidth: 110 },
+      ], [ctx.ccy]);
+      return <AgGrid rowData={rows} columnDefs={columnDefs} defaultColDef={defaultColDef}
+                    rowHeight={36} headerHeight={36} height={260}
+                    gridOptions={{ context: ctx }} />;
+    }
+
+    function PnLGrid({ rows, ctx }) {
+      const fmt = makeCurrencyFormatter(ctx);
+      const columnDefs = useMemo(() => [
+        { field: "lineItem", headerName: "Line item", flex: 2.5, pinned: "left", minWidth: 220,
+          cellStyle: (p) => ({ paddingLeft: (12 + (p.data?.depth || 0) * 16) + "px" }) },
+        { field: "current",     headerName: "Current",  type: "numericColumn", valueFormatter: fmt, cellClass: numericCellClass },
+        { field: "prior",       headerName: "Prior",    type: "numericColumn", valueFormatter: fmt, cellClass: numericCellClass },
+        { field: "variance",    headerName: "Variance", type: "numericColumn", cellRenderer: varianceRenderer, cellClass: numericCellClass },
+        { field: "pctVariance", headerName: "% var",    type: "numericColumn", cellRenderer: variancePctRenderer, cellClass: numericCellClass, maxWidth: 110 },
+      ], [ctx.ccy]);
+      return <AgGrid rowData={rows} columnDefs={columnDefs} defaultColDef={defaultColDef}
+                    rowHeight={36} headerHeight={36} height={520}
+                    gridOptions={{ context: ctx, rowClassRules: { "ag-row-subtotal": (p) => p.data?.isSubtotal } }} />;
+    }
+
+    function CashFlowGrid({ rows, ctx }) {
+      const fmt = makeCurrencyFormatter(ctx);
+      const columnDefs = useMemo(() => [
+        { field: "category", headerName: "Category", flex: 1, pinned: "left", minWidth: 140, rowGroup: false },
+        { field: "lineItem", headerName: "Line item", flex: 2, minWidth: 200 },
+        { field: "amount",   headerName: "Amount",   type: "numericColumn", cellRenderer: varianceRenderer, cellClass: numericCellClass },
+      ], [ctx.ccy]);
+      return <AgGrid rowData={rows} columnDefs={columnDefs} defaultColDef={defaultColDef}
+                    rowHeight={36} headerHeight={36} height={440}
+                    gridOptions={{ context: ctx }} />;
+    }
+
+    function ArAgingGrid({ rows, ctx }) {
+      const fmt = makeCurrencyFormatter(ctx);
+      const overdueClass = (p) => (p.value > 0 ? "ag-cell-overdue" : "");
+      const columnDefs = useMemo(() => [
+        { field: "customer", headerName: "Customer", flex: 2, pinned: "left", minWidth: 180,
+          cellStyle: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } },
+        { field: "current", headerName: "Current",   type: "numericColumn", valueFormatter: fmt, cellClass: numericCellClass, minWidth: 100 },
+        { field: "d1_30",   headerName: "1–30 d",    type: "numericColumn", valueFormatter: fmt, cellClass: numericCellClass, minWidth: 100 },
+        { field: "d31_60",  headerName: "31–60 d",   type: "numericColumn", valueFormatter: fmt, cellClass: numericCellClass, minWidth: 100 },
+        { field: "d61_90",  headerName: "61–90 d",   type: "numericColumn", valueFormatter: fmt, cellClass: (p) => `${numericCellClass} ${overdueClass(p)}`, minWidth: 100 },
+        { field: "d90plus", headerName: "> 90 d",    type: "numericColumn", valueFormatter: fmt, cellClass: (p) => `${numericCellClass} ${overdueClass(p)}`, minWidth: 100 },
+        { field: "total",   headerName: "Total",     type: "numericColumn", valueFormatter: fmt, cellClass: numericCellClass, minWidth: 110,
+          cellStyle: { fontWeight: 700 } },
+      ], [ctx.ccy]);
+      return <AgGrid rowData={rows} columnDefs={columnDefs} defaultColDef={defaultColDef}
+                    rowHeight={36} headerHeight={36} height={440}
+                    gridOptions={{ context: ctx }} />;
+    }
+
+    function ApOutstandingGrid({ rows, ctx }) {
+      const fmt = makeCurrencyFormatter(ctx);
+      const columnDefs = useMemo(() => [
+        { field: "vendor",          headerName: "Vendor",        flex: 2, pinned: "left", minWidth: 180 },
+        { field: "dueDate",         headerName: "Due date",      minWidth: 110,
+          valueFormatter: (p) => p.value ? new Date(p.value).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "" },
+        { field: "amount",          headerName: "Amount",        type: "numericColumn", valueFormatter: fmt, cellClass: numericCellClass, minWidth: 110 },
+        { field: "daysOutstanding", headerName: "Days",          type: "numericColumn", cellClass: numericCellClass, minWidth: 90 },
+        { field: "status",          headerName: "Status",        cellRenderer: statusRenderer, minWidth: 110 },
+      ], [ctx.ccy]);
+      return <AgGrid rowData={rows} columnDefs={columnDefs} defaultColDef={defaultColDef}
+                    rowHeight={36} headerHeight={36} height={440}
+                    gridOptions={{ context: ctx }} />;
+    }
+
+    function BudgetGrid({ rows, ctx }) {
+      const fmt = makeCurrencyFormatter(ctx);
+      const columnDefs = useMemo(() => [
+        { field: "department",  headerName: "Department", flex: 2, pinned: "left", minWidth: 160 },
+        { field: "budget",      headerName: "Budget",     type: "numericColumn", valueFormatter: fmt, cellClass: numericCellClass },
+        { field: "actual",      headerName: "Actual",     type: "numericColumn", valueFormatter: fmt, cellClass: numericCellClass },
+        { field: "variance",    headerName: "Variance",   type: "numericColumn", cellRenderer: varianceRenderer, cellClass: numericCellClass },
+        { field: "pctVariance", headerName: "% var",      type: "numericColumn", cellRenderer: variancePctRenderer, cellClass: numericCellClass, maxWidth: 110 },
+        { field: "rag",         headerName: "RAG",        cellRenderer: ragRenderer, maxWidth: 120 },
+      ], [ctx.ccy]);
+      return <AgGrid rowData={rows} columnDefs={columnDefs} defaultColDef={defaultColDef}
+                    rowHeight={36} headerHeight={36} height={440}
+                    gridOptions={{ context: ctx }} />;
+    }
+
+    function HeadcountGrid({ rows, ctx }) {
+      const fmt = makeCurrencyFormatter(ctx);
+      const intFmt = (p) => (p.value == null ? "" : new Intl.NumberFormat("en-US").format(p.value));
+      const columnDefs = useMemo(() => [
+        { field: "department", headerName: "Department", flex: 2, pinned: "left", minWidth: 160 },
+        { field: "headcount",  headerName: "Headcount",  type: "numericColumn", valueFormatter: intFmt, cellClass: numericCellClass, minWidth: 110 },
+        { field: "loadedCost", headerName: "Loaded cost", type: "numericColumn", valueFormatter: fmt, cellClass: numericCellClass, minWidth: 140 },
+        { field: "vsPlan",     headerName: "vs plan",     type: "numericColumn",
+          cellRenderer: (p) => {
+            const v = Number(p.value || 0); if (v === 0) return "<span>0</span>";
+            const pos = v > 0;
+            const cls = pos ? "var-cell var-cell--pos" : "var-cell var-cell--neg";
+            const arrow = pos
+              ? '<svg class="var-cell__arrow" viewBox="0 0 8 8" aria-hidden="true"><polygon points="4,0 8,8 0,8" fill="currentColor"/></svg>'
+              : '<svg class="var-cell__arrow" viewBox="0 0 8 8" aria-hidden="true"><polygon points="4,8 0,0 8,0" fill="currentColor"/></svg>';
+            const text = (pos ? "+" : "") + v;
+            return `<span class="${cls}" aria-label="${pos ? "above plan by" : "below plan by"} ${Math.abs(v)}">${arrow}<span>${text}</span></span>`;
+          },
+          cellClass: numericCellClass, minWidth: 110 },
+      ], [ctx.ccy]);
+      return <AgGrid rowData={rows} columnDefs={columnDefs} defaultColDef={defaultColDef}
+                    rowHeight={36} headerHeight={36} height={400}
+                    gridOptions={{ context: ctx }} />;
+    }
+
+    /* =====================================================
+       Tab panels
+       ===================================================== */
+    function OverviewPanel({ ctx }) {
+      const cf = useMemo(() => CASH_FLOW.reduce((acc, r) => {
+        acc[r.category] = (acc[r.category] || 0) + r.amount; return acc;
+      }, {}), []);
+      const fmt = currencyFormatter(ctx.ccy);
+      return (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: "var(--ap-space-3)" }} className="grid-safe">
+            <section className="card">
+              <header className="card__head">
+                <h3 className="card__title">Revenue vs expense (12 mo)</h3>
+                <p className="card__sub">Indexed, {ctx.ccy}</p>
+              </header>
+              <div className="placeholder-chart" role="img" aria-label="Revenue vs expense trend chart placeholder">
+                <svg viewBox="0 0 320 200" preserveAspectRatio="none">
+                  <polyline fill="none" stroke="var(--ap-primary-2)" strokeWidth="2"
+                            points="0,140 30,130 60,115 90,120 120,100 150,95 180,80 210,90 240,70 270,65 300,55 320,50" />
+                  <polyline fill="none" stroke="var(--ap-error)" strokeWidth="2" strokeDasharray="4 3"
+                            points="0,160 30,150 60,145 90,150 120,140 150,135 180,130 210,128 240,118 270,118 300,112 320,108" />
+                </svg>
+              </div>
+            </section>
+            <section className="card">
+              <header className="card__head">
+                <h3 className="card__title">Operating cash trend</h3>
+                <p className="card__sub">Closing balance, {ctx.ccy}</p>
+              </header>
+              <div className="placeholder-chart" role="img" aria-label="Operating cash trend chart placeholder">
+                <svg viewBox="0 0 320 200" preserveAspectRatio="none">
+                  <polygon fill="var(--ap-primary)" opacity="0.12"
+                           points="0,200 0,140 30,120 60,130 90,110 120,90 150,95 180,80 210,70 240,60 270,55 300,50 320,40 320,200" />
+                  <polyline fill="none" stroke="var(--ap-primary)" strokeWidth="2"
+                            points="0,140 30,120 60,130 90,110 120,90 150,95 180,80 210,70 240,60 270,55 300,50 320,40" />
+                </svg>
+              </div>
+            </section>
+          </div>
+
+          <section className="card grid-card">
+            <header className="card__head" style={{ padding: "var(--ap-space-3) var(--ap-space-4) 0" }}>
+              <h3 className="card__title">Top variances vs budget</h3>
+              <p className="card__sub">Largest 5 line items, MTD</p>
+            </header>
+            <div className="scroll-hint">Scroll table horizontally →</div>
+            <VariancesGrid rows={TOP_VARIANCES} ctx={ctx} />
+          </section>
+        </>
+      );
+    }
+
+    function PnLPanel({ ctx }) {
+      return (
+        <section className="card grid-card">
+          <header className="card__head" style={{ padding: "var(--ap-space-3) var(--ap-space-4) 0" }}>
+            <h3 className="card__title">Profit & Loss</h3>
+            <p className="card__sub">Current vs prior, {ctx.ccy}</p>
+          </header>
+          <PnLGrid rows={PNL} ctx={ctx} />
+        </section>
+      );
+    }
+
+    function CashFlowPanel({ ctx }) {
+      const totals = useMemo(() => CASH_FLOW.reduce((acc, r) => {
+        acc[r.category] = (acc[r.category] || 0) + r.amount; return acc;
+      }, {}), []);
+      const fmt = currencyFormatter(ctx.ccy);
+      const display = (n) => fmt.format(ctx.fxOn ? n : n);
+      return (
+        <>
+          <div className="summary-tiles grid-safe">
+            <div className="summary-tile">
+              <div className="summary-tile__label">Operating</div>
+              <div className="summary-tile__value">{display(totals.Operating || 0)}</div>
+            </div>
+            <div className="summary-tile">
+              <div className="summary-tile__label">Investing</div>
+              <div className="summary-tile__value">{display(totals.Investing || 0)}</div>
+            </div>
+            <div className="summary-tile">
+              <div className="summary-tile__label">Financing</div>
+              <div className="summary-tile__value">{display(totals.Financing || 0)}</div>
+            </div>
+          </div>
+          <section className="card grid-card">
+            <CashFlowGrid rows={CASH_FLOW} ctx={ctx} />
+          </section>
+        </>
+      );
+    }
+
+    function ArApPanel({ ctx }) {
+      return (
+        <div className="ar-ap-row grid-safe">
+          <section className="card grid-card">
+            <header className="card__head" style={{ padding: "var(--ap-space-3) var(--ap-space-4) 0" }}>
+              <h3 className="card__title">AR aging</h3>
+              <p className="card__sub">Outstanding receivable buckets</p>
+            </header>
+            <ArAgingGrid rows={AR_AGING} ctx={ctx} />
+          </section>
+          <section className="card grid-card">
+            <header className="card__head" style={{ padding: "var(--ap-space-3) var(--ap-space-4) 0" }}>
+              <h3 className="card__title">AP outstanding</h3>
+              <p className="card__sub">Top 10 vendors by amount</p>
+            </header>
+            <ApOutstandingGrid rows={AP_OUTSTANDING} ctx={ctx} />
+          </section>
+        </div>
+      );
+    }
+
+    function BudgetPanel({ ctx }) {
+      return (
+        <section className="card grid-card">
+          <header className="card__head" style={{ padding: "var(--ap-space-3) var(--ap-space-4) 0" }}>
+            <h3 className="card__title">Budget vs actual</h3>
+            <p className="card__sub">By department, MTD</p>
+          </header>
+          <BudgetGrid rows={BUDGET} ctx={ctx} />
+        </section>
+      );
+    }
+
+    function HeadcountPanel({ ctx }) {
+      return (
+        <section className="card grid-card">
+          <header className="card__head" style={{ padding: "var(--ap-space-3) var(--ap-space-4) 0" }}>
+            <h3 className="card__title">Headcount</h3>
+            <p className="card__sub">By department</p>
+          </header>
+          <HeadcountGrid rows={HEADCOUNT} ctx={ctx} />
+        </section>
+      );
+    }
+
+    /* =====================================================
+       Right rail cards
+       ===================================================== */
+    function AlertsCard() {
+      const sevTag = (sev, label) => {
+        if (sev === "basic") return <Tag type="basic" color="gray" size="sm" structure="solid" label={label} noIcon />;
+        return <Tag type={sev} size="sm" structure="solid" label={label} />;
+      };
+      const labelFor = (sev) => sev === "error" ? "Critical" : sev === "warning" ? "Warning" : "Info";
+      return (
+        <div className="card">
+          <header className="card__head">
+            <h3 className="card__title">Alerts</h3>
+            <Tag type="basic" color="red" size="sm" structure="solid" label={String(ALERTS.length)} noIcon />
+          </header>
+          {ALERTS.map((a, i) => (
+            <div key={i} className="alert-row">
+              {sevTag(a.severity, labelFor(a.severity))}
+              <div>
+                <div className="alert-row__title">{a.title}</div>
+              </div>
+              <div className="alert-row__time">{a.time}</div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    function CloseCycleCard() {
+      const done = CLOSE_CHECKLIST.filter((c) => c.status === "done").length;
+      const total = CLOSE_CHECKLIST.length;
+      const pct = Math.round((done / total) * 100);
+      const blocked = CLOSE_CHECKLIST.some((c) => c.status === "blocked");
+      const statusIcon = {
+        done:        { name: "ap-icon-success",          color: "var(--ap-success)" },
+        in_progress: { name: "ap-icon-in-progress-filled", color: "var(--ap-warning)" },
+        blocked:     { name: "ap-icon-alert-filled",     color: "var(--ap-error)"   },
+        not_started: { name: "ap-icon-dot",              color: "var(--ap-text-soft)" },
+      };
+      const tagFor = (s) => {
+        if (s === "done")        return <Tag type="success" size="sm" structure="solid" label="Done" />;
+        if (s === "in_progress") return <Tag type="warning" size="sm" structure="solid" label="In progress" />;
+        if (s === "blocked")     return <Tag type="error"   size="sm" structure="solid" label="Blocked" />;
+        return <Tag type="basic" color="gray" size="sm" structure="border" label="Not started" noIcon />;
+      };
+      return (
+        <div className="card">
+          <header className="card__head">
+            <h3 className="card__title">Close cycle</h3>
+            <span className="card__sub">{done} / {total} · 3 d remaining</span>
+          </header>
+          <div className={`progress ${blocked ? "progress--error" : ""}`}
+               role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow={pct}
+               aria-label={`Close cycle progress ${pct}%`}>
+            <span className="progress__fill" style={{ width: pct + "%" }} />
+          </div>
+          <div className="checklist" style={{ marginTop: "var(--ap-space-3)" }}>
+            {CLOSE_CHECKLIST.map((c, i) => (
+              <div key={i} className={`checklist__item ${c.status === "done" ? "checklist__item--done" : ""}`}>
+                <Icon name={statusIcon[c.status].name} size={14} style={{ color: statusIcon[c.status].color }} />
+                <span className="checklist__label">{c.task}</span>
+                {tagFor(c.status)}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function ApprovalsCard({ ctx }) {
+      const fmt = currencyFormatter(ctx.ccy);
+      return (
+        <div className="card">
+          <header className="card__head">
+            <h3 className="card__title">Recent journal approvals</h3>
+          </header>
+          {APPROVALS.map((a, i) => (
+            <div key={i} className="approvals-row">
+              <div>
+                <div className="approvals-row__user">{a.user}</div>
+                <div className="approvals-row__meta">{a.entity}</div>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <div className="approvals-row__amount">{fmt.format(ctx.fxOn ? a.amount : a.amount)}</div>
+                <div className="approvals-row__time">{a.time} ago</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    function QuickLinksCard() {
+      const links = [
+        { label: "Export pack",          icon: "ap-icon-export" },
+        { label: "Schedule board report", icon: "ap-icon-date" },
+        { label: "Open close calendar",  icon: "ap-icon-clock" },
+        { label: "Settings",             icon: "ap-icon-settings" },
+      ];
+      return (
+        <div className="card">
+          <header className="card__head">
+            <h3 className="card__title">Quick links</h3>
+          </header>
+          <div className="quick-links">
+            {links.map((l) => (
+              <Button key={l.label} type="tertiary" size="sm" icon={l.icon} iconPosition="left">
+                {l.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    /* =====================================================
+       Shell
+       ===================================================== */
+    function Shell() {
+      const toast = useToast();
+      const [bannerOpen, setBannerOpen] = useState(true);
+      const [packOpen, setPackOpen] = useState(false);
+      const [activeTab, setActiveTab] = useState("overview");
+      const [filters, setFilters] = useState({
+        datePreset: "month",
+        entities: [],
+        currency: "USD",
+        fxOn: false,
+        compareTo: "prior_period",
+      });
+
+      const ctx = useMemo(() => gridContext(filters.currency, filters.fxOn), [filters.currency, filters.fxOn]);
+
+      const onClearAll = () => setFilters({
+        datePreset: "month", entities: [], currency: "USD", fxOn: false, compareTo: "prior_period",
+      });
+
+      const handleGenerate = () => {
+        setPackOpen(false);
+        try {
+          toast.success("CFO pack queued — you'll be notified when ready.");
+        } catch (e) {
+          window.alert("CFO pack queued — you'll be notified when ready.");
+        }
+      };
+
+      const tabs = [
+        { id: "overview", label: "Overview" },
+        { id: "pnl",      label: "P&L" },
+        { id: "cashflow", label: "Cash flow" },
+        { id: "arap",     label: "AR / AP" },
+        { id: "budget",   label: "Budget vs actual" },
+        { id: "headcount",label: "Headcount" },
+      ];
+
+      return (
+        <>
+          <div className="topbar">
+            <NavBar
+              projectName="Finance"
+              projectLogoIcon="ap-icon-logo-alixpartners"
+              activeMenuItemHref="#dashboard"
+              menuItems={[
+                { label: "Dashboard", href: "#dashboard" },
+                { label: "Reports",   href: "#reports" },
+                { label: "Ledger",    href: "#ledger" },
+                { label: "Admin",     href: "#admin" },
+              ]}
+            />
+            <div className="topbar__actions">
+              <Button type="secondary" size="sm" icon="ap-icon-export" iconPosition="left">
+                Export board report
+              </Button>
+              <Button type="primary" size="sm" icon="ap-icon-send" iconPosition="left"
+                      onClick={() => setPackOpen(true)}>
+                Generate CFO pack
+              </Button>
+            </div>
+          </div>
+
+          <div className="shell">
+            <div className="shell__main">
+              {bannerOpen && (
+                <div className="banner-row">
+                  <Banner type="info" size="md"
+                          icon="ap-icon-clock"
+                          onClose={() => setBannerOpen(false)}
+                          isFullWidth
+                          contentHTML={
+                            <span>
+                              Month-end close — 3 days remaining.
+                              <button className="banner-trailing" type="button"
+                                      onClick={() => toast.success?.("Opening close calendar (stub)")}>
+                                View close calendar
+                              </button>
+                            </span>
+                          } />
+                </div>
+              )}
+
+              <ul className="kpi-strip grid-safe" role="list" aria-label="Key performance indicators">
+                {KPIS.map((k) => (
+                  <KpiCard key={k.id} kpi={k} currency={filters.currency} fxOn={filters.fxOn} />
+                ))}
+              </ul>
+
+              <FilterBar state={filters} setState={setFilters} onClearAll={onClearAll} />
+
+              <div className="tabs-shell">
+                <div className="tabs-shell__head">
+                  <TabNavigation align="left">
+                    {tabs.map((t) => (
+                      <Tab key={t.id} label={t.label} active={activeTab === t.id}
+                           onClick={() => setActiveTab(t.id)} />
+                    ))}
+                  </TabNavigation>
+                </div>
+                <div className="tabs-shell__body">
+                  {activeTab === "overview" && <OverviewPanel ctx={ctx} />}
+                  {activeTab === "pnl"      && <PnLPanel      ctx={ctx} />}
+                  {activeTab === "cashflow" && <CashFlowPanel ctx={ctx} />}
+                  {activeTab === "arap"     && <ArApPanel     ctx={ctx} />}
+                  {activeTab === "budget"   && <BudgetPanel   ctx={ctx} />}
+                  {activeTab === "headcount"&& <HeadcountPanel ctx={ctx} />}
+                </div>
+              </div>
+            </div>
+
+            <aside className="shell__rail" aria-label="Status sidebar">
+              <AlertsCard />
+              <CloseCycleCard />
+              <ApprovalsCard ctx={ctx} />
+              <QuickLinksCard />
+            </aside>
+          </div>
+
+          {packOpen && (
+            <Dialog
+              isOpen
+              title="Generate CFO pack"
+              description="Compile this month's CFO pack and send to selected destinations."
+              onClose={() => setPackOpen(false)}
+              confirmButtonText="Generate"
+              cancelButtonText="Cancel"
+              onConfirm={handleGenerate}
+              onCancel={() => setPackOpen(false)}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingTop: "8px" }}>
+                <strong>Destinations</strong>
+                <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <input type="checkbox" defaultChecked /> Email to executive team
+                </label>
+                <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <input type="checkbox" defaultChecked /> Upload to board portal
+                </label>
+                <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <input type="checkbox" /> Post to #finance Slack
+                </label>
+                <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <input type="checkbox" /> Archive to SharePoint
+                </label>
+              </div>
+            </Dialog>
+          )}
+        </>
+      );
+    }
+
+    function App() {
+      return (
+        <ToastProvider>
+          <Shell />
+        </ToastProvider>
+      );
+    }
+
+    createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
